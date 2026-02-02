@@ -1,7 +1,7 @@
 {
   "name": "Custom Style AI Chat",
   "short_name": "AI Chat",
-  "start_url": "index.html",
+  "start_url": "./?mode=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2b3542",
