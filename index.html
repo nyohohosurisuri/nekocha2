@@ -6,7 +6,7 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Custom AI Chat</title>
-  <link rel="manifest" href="./assets/manifest-BugcWs5K.json">
+  <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,6 +16,16 @@
   <script>
     // Polyfill process.env for browser environments immediately
     window.process = window.process || { env: {} };
+
+    // Handle SPA redirects from 404.html
+    (function () {
+      const redirect = sessionStorage.getItem('spa-redirect');
+      if (redirect) {
+        sessionStorage.removeItem('spa-redirect');
+        // For PWA, we mostly use hash or query params, so this handles edge cases
+        console.log('SPA redirect from:', redirect);
+      }
+    })();
   </script>
   <style>
     /* Custom scrollbar for webkit */
