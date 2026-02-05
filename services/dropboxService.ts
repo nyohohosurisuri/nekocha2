@@ -260,10 +260,11 @@ export const dropboxService = {
 
     // --- Sync Logic ---
 
+    // --- Sync Logic ---
+
     // 1. Upload Local Data (Push)
     uploadData: async (data: string) => {
-        // Prepare args for Dropbox-API-Arg header. 
-        // Note: non-ASCII characters in header might be an issue, but filename is ASCII.
+        // Prepare args for Dropbox-API-Arg header.
         const args = {
             path: METADATA_PATH,
             mode: 'overwrite',
@@ -321,66 +322,165 @@ export const dropboxService = {
         await dbService.restoreAllData(jsonStr);
     },
 
+    // Helper: Merge two backup datasets
+    mergeBackups: (local: any, cloud: any): any => {
+        console.log('[Dropbox Sync] Merging backups...');
+
+        // Helper to map sessions by ID
+        const sessionMap = new Map<string, any>();
+        const dataMap = new Map<string, any>();
+
+        // 1. Load Local Data First
+        if (local.sessions) {
+            local.sessions.forEach((s: any) => sessionMap.set(s.id, s));
+        }
+        if (local.dataItems || local.sessionDataItems) {
+            (local.dataItems || local.sessionDataItems).forEach((d: any) => dataMap.set(d.id, d));
+        }
+
+        // 2. Merge Cloud Data
+        if (cloud.sessions) {
+            cloud.sessions.forEach((cloudSession: any) => {
+                const localSession = sessionMap.get(cloudSession.id);
+                if (localSession) {
+                    // Conflict: Compare updatedAt
+                    const localTime = new Date(localSession.updatedAt).getTime();
+                    const cloudTime = new Date(cloudSession.updatedAt).getTime();
+                    if (cloudTime > localTime) {
+                        sessionMap.set(cloudSession.id, cloudSession); // Cloud wins
+                    }
+                    // Else: Local wins (Keep existing)
+                } else {
+                    // New from cloud
+                    sessionMap.set(cloudSession.id, cloudSession);
+                }
+            });
+        }
+
+        if (cloud.dataItems || cloud.sessionDataItems) {
+            (cloud.dataItems || cloud.sessionDataItems).forEach((cloudItem: any) => {
+                const localItem = dataMap.get(cloudItem.id);
+                // We should respect the session decision ideally, but checking timestamp is safer
+                // However, dataItems don't always have simple timestamps at root. 
+                // We rely on the fact that if we chose cloud session, we should probably choose cloud data.
+                // But let's check the sessionMap source to be consistent.
+
+                const chosenSession = sessionMap.get(cloudItem.id);
+                if (chosenSession) {
+                    // Check if the chosen session matches the cloud one roughly (update time check)
+                    // If sessionMap has the cloud session object, using strictly equal reference might not work due to clone
+                    // Let's use ID and updatedAt comparison
+
+                    // Actually, simpler logic:
+                    // If local didn't have it, take cloud.
+                    // If local had it, check which session version won.
+                    if (!localItem) {
+                        dataMap.set(cloudItem.id, cloudItem);
+                    } else {
+                        const winSession = sessionMap.get(cloudItem.id);
+                        // If the winning session has the same update time as cloud session, take cloud data
+                        // (Assuming cloud sessions loop logic ensures we stored the object from cloud if it won)
+
+                        // To be robust: Compare messages length or last timestamp inside data
+                        // Simple approach: Use same logic as Session Index
+                        if (cloud.sessions) {
+                            const cloudSess = cloud.sessions.find((s: any) => s.id === cloudItem.id);
+                            if (cloudSess) {
+                                const mergedSess = sessionMap.get(cloudItem.id);
+                                if (new Date(cloudSess.updatedAt).getTime() === new Date(mergedSess.updatedAt).getTime()) {
+                                    // Cloud session is the winner, so take cloud data
+                                    dataMap.set(cloudItem.id, cloudItem);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        return {
+            version: Math.max(local.version || 0, cloud.version || 0),
+            timestamp: new Date().toISOString(),
+            sessions: Array.from(sessionMap.values()),
+            dataItems: Array.from(dataMap.values())
+        };
+    },
+
+    // Helper: Check if data1 includes everything in data2 (is data1 a superset or equal to data2?)
+    // Used to decide if we need to upload/restore
+    areBackupsRoughlyEqual: (a: any, b: any): boolean => {
+        if (!a || !b) return false;
+
+        // Check sessions count
+        if (a.sessions?.length !== b.sessions?.length) return false;
+
+        // Check timestamps matches for all IDs
+        const aMap = new Map();
+        a.sessions.forEach((s: any) => aMap.set(s.id, s.updatedAt));
+
+        for (const s of (b.sessions || [])) {
+            if (!aMap.has(s.id)) return false;
+            if (new Date(aMap.get(s.id)).getTime() !== new Date(s.updatedAt).getTime()) return false;
+        }
+
+        return true;
+    },
+
     // Main Sync Function
-    // returns 'downloaded' if cloud data replaced local, 'uploaded' if local pushed, 'synced' if same
     sync: async (): Promise<'downloaded' | 'uploaded' | 'synced'> => {
         console.log('[Dropbox Sync] Starting sync...');
 
         const cloudMeta = await dropboxService.getMetadata();
-        console.log('[Dropbox Sync] Cloud metadata:', cloudMeta);
 
-        // If no cloud file, push local immediately
+        // 1. Prepare Local Data
+        const localJsonStr = await dropboxService.createBackupJson();
+        const localData = JSON.parse(localJsonStr);
+
+        // 2. If no cloud data, upload local and finish
         if (!cloudMeta) {
             console.log('[Dropbox Sync] No cloud file found, uploading local data...');
-            const localJson = await dropboxService.createBackupJson();
-            console.log('[Dropbox Sync] Local backup created, size:', localJson.length, 'bytes');
-            await dropboxService.uploadData(localJson);
-            console.log('[Dropbox Sync] Upload complete');
+            await dropboxService.uploadData(localJsonStr);
             return 'uploaded';
         }
 
-        // Compare timestamps
-        const sessions = await dbService.getAllSessions();
-        console.log('[Dropbox Sync] Local sessions count:', sessions.length);
-
-        let localLastUpdate = new Date(0);
-        if (sessions.length > 0) {
-            const sorted = [...sessions].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-            localLastUpdate = sorted[0].updatedAt;
-        }
-        console.log('[Dropbox Sync] Local last update:', localLastUpdate.toISOString());
-
-        const cloudModifiedTime = new Date(cloudMeta.client_modified);
-        console.log('[Dropbox Sync] Cloud modified time:', cloudModifiedTime.toISOString());
-
+        // 3. Download Cloud Data
         const cloudContentStr = await dropboxService.downloadData();
         if (!cloudContentStr) {
-            console.log('[Dropbox Sync] Cloud file empty or could not be downloaded, uploading...');
-            const localJson = await dropboxService.createBackupJson();
-            await dropboxService.uploadData(localJson);
+            console.log('[Dropbox Sync] Failed to download content (empty?), uploading local...');
+            await dropboxService.uploadData(localJsonStr);
             return 'uploaded';
         }
-        console.log('[Dropbox Sync] Downloaded cloud data, size:', cloudContentStr.length, 'bytes');
 
         const cloudData = JSON.parse(cloudContentStr);
-        // Assuming cloudData structure matches standard format with timestamp
-        const cloudTimestamp = new Date(cloudData.timestamp || cloudMeta.client_modified);
+        console.log(`[Dropbox Sync] Cloud sessions: ${cloudData.sessions?.length}, Local sessions: ${localData.sessions?.length}`);
 
-        console.log(`[Dropbox Sync] Local latest: ${localLastUpdate.toISOString()}, Cloud timestamp: ${cloudTimestamp.toISOString()}`);
+        // 4. Merge
+        const mergedData = dropboxService.mergeBackups(localData, cloudData);
+        console.log(`[Dropbox Sync] Merged sessions: ${mergedData.sessions.length}`);
 
-        // Threshold of 1 second differentiation
-        if (cloudTimestamp.getTime() > localLastUpdate.getTime() + 1000) {
-            console.log("[Dropbox Sync] Cloud is newer. Restoring...");
-            await dropboxService.restoreBackupJson(cloudContentStr);
-            return 'downloaded';
-        } else if (localLastUpdate.getTime() > cloudTimestamp.getTime() + 1000) {
-            console.log("[Dropbox Sync] Local is newer. Uploading...");
-            const localJson = await dropboxService.createBackupJson();
-            await dropboxService.uploadData(localJson);
-            return 'uploaded';
+        // 5. Determine Actions
+        const isCloudUpToDate = dropboxService.areBackupsRoughlyEqual(cloudData, mergedData);
+        const isLocalUpToDate = dropboxService.areBackupsRoughlyEqual(localData, mergedData);
+
+        console.log(`[Dropbox Sync] Cloud up-to-date: ${isCloudUpToDate}, Local up-to-date: ${isLocalUpToDate}`);
+
+        if (isCloudUpToDate && isLocalUpToDate) {
+            return 'synced';
         }
 
-        console.log('[Dropbox Sync] Data is already synced');
-        return 'synced';
+        // Upload to Cloud if needed
+        if (!isCloudUpToDate) {
+            console.log('[Dropbox Sync] Uploading merged data to cloud...');
+            await dropboxService.uploadData(JSON.stringify(mergedData));
+        }
+
+        // Restore to Local if needed
+        if (!isLocalUpToDate) {
+            console.log('[Dropbox Sync] Restoring merged data to local...');
+            await dropboxService.restoreBackupJson(JSON.stringify(mergedData));
+            return 'downloaded'; // This triggers reload in App.tsx
+        }
+
+        return 'uploaded'; // Only cloud was updated
     }
 };
