@@ -88,6 +88,7 @@ const DEFAULT_CONFIG: ChatConfig = {
   forceFunctionCall: false,
   autoScrollToBottom: true,
   sendOnEnter: false,
+  responseLength: 'long',
 };
 
 // Global type definition for aistudio
@@ -1013,7 +1014,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.3.9 (2026/02/06 07:40) - Settings Layout Toned
+            Ver 1.3.10 (2026/02/06 07:46) - Response Length Control
           </div>
         </div>
       </footer>

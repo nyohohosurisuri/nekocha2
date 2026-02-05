@@ -131,6 +131,15 @@ export const initializeChat = (history: Message[], systemInstruction: string = D
         finalSystemInstruction += `\n\n[IMPORTANT: Language Requirement]\nYou MUST respond ONLY in ${langName}. Never respond in any other language.`;
     }
 
+    // Add response length instruction
+    if (config && config.responseLength) {
+        if (config.responseLength === 'short') {
+            finalSystemInstruction += "\n\n[Response Length]\nKeep your responses very short and concise.";
+        } else if (config.responseLength === 'normal') {
+            finalSystemInstruction += "\n\n[Response Length]\nKeep your responses moderate in length.";
+        }
+    }
+
     if (config && (config.userName || config.userPersona || config.relationship)) {
         finalSystemInstruction += "\n\n[User Context]";
         if (config.userName) {

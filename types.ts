@@ -26,6 +26,7 @@ export interface ChatConfig {
   systemInstruction: string;
   model: string;
   language?: string; // 'ja' | 'en' | 'ko' | 'zh-TW' | 'zh-CN'
+  responseLength?: 'short' | 'normal' | 'long'; // New: Short, Normal, Long (None)
   // User Profile
   userName?: string;
   userPersona?: string;

@@ -353,6 +353,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                 </div>
                                 <p className="text-xs text-gray-400 ml-1">キャラクターがこの言語で話します</p>
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">メッセージの長さ</label>
+                                <div className="relative">
+                                    <select
+                                        value={config.responseLength || 'long'}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, responseLength: e.target.value as any }))}
+                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none appearance-none"
+                                    >
+                                        <option value="short">短い</option>
+                                        <option value="normal">普通</option>
+                                        <option value="long">長い (指定なし)</option>
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-400 ml-1">AIの返答の長さを調整します</p>
+                            </div>
                         </div>
                     )}
 
