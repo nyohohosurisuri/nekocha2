@@ -1,0 +1,5 @@
+{
+  "name": "Custom Style AI Chat",
+  "description": "A LINE-style messaging application where users can customize the AI avatar and chat background.",
+  "requestFramePermissions": []
+}

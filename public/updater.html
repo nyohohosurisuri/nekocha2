@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>ネコチャ Update</title>
+          <style>
+                    body {
+                              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                              padding: 20px;
+                              max-width: 600px;
+                              margin: 0 auto;
+                              line-height: 1.6;
+                              background-color: #f3f4f6;
+                              color: #1f2937;
+                    }
+
+                    .card {
+                              background: white;
+                              padding: 2rem;
+                              border-radius: 1rem;
+                              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                    }
+
+                    h1 {
+                              margin-top: 0;
+                              color: #06c755;
+                    }
+
+                    pre {
+                              background: #111827;
+                              color: #10b981;
+                              padding: 1rem;
+                              border-radius: 0.5rem;
+                              overflow-x: auto;
+                              font-size: 0.875rem;
+                              min-height: 100px;
+                    }
+
+                    .spinner {
+                              border: 4px solid #f3f3f3;
+                              border-top: 4px solid #06c755;
+                              border-radius: 50%;
+                              width: 24px;
+                              height: 24px;
+                              animation: spin 1s linear infinite;
+                              display: inline-block;
+                              vertical-align: middle;
+                              margin-right: 8px;
+                    }
+
+                    @keyframes spin {
+                              0% {
+                                        transform: rotate(0deg);
+                              }
+
+                              100% {
+                                        transform: rotate(360deg);
+                              }
+                    }
+          </style>
+</head>
+
+<body>
+          <div class="card">
+                    <h1>
+                              <div class="spinner"></div>更新中...
+                    </h1>
+                    <p>アプリケーションの古いキャッシュを削除して、最新バージョンに更新しています。完了すると自動的にリダイレクトされます。</p>
+                    <pre id="log"></pre>
+          </div>
+
+          <script>
+                    const logEl = document.getElementById('log');
+                    const log = (msg) => {
+                              logEl.textContent += '> ' + msg + '\n';
+                              console.log(msg);
+                    };
+
+                    async function cleanup() {
+                              try {
+                                        log('開始します...');
+
+                                        // Unregister Service Workers
+                                        if ('serviceWorker' in navigator) {
+                                                  const registrations = await navigator.serviceWorker.getRegistrations();
+                                                  log(`${registrations.length} 個のService Workerが見つかりました`);
+                                                  for (const registration of registrations) {
+                                                            log(`登録解除中: ${registration.scope}`);
+                                                            await registration.unregister();
+                                                  }
+                                        }
+
+                                        // Delete Caches
+                                        if ('caches' in window) {
+                                                  const keys = await caches.keys();
+                                                  log(`${keys.length} 個のキャッシュが見つかりました`);
+                                                  for (const key of keys) {
+                                                            log(`キャッシュ削除: ${key}`);
+                                                            await caches.delete(key);
+                                                  }
+                                        }
+
+                                        log('完了しました！ 3秒後にリダイレクトします...');
+
+                                        setTimeout(() => {
+                                                  // Add random query param to bypass browser cache
+                                                  window.location.href = './?v=' + Date.now();
+                                        }, 3000);
+
+                              } catch (e) {
+                                        log('エラーが発生しました: ' + e);
+                                        console.error(e);
+                              }
+                    }
+
+                    // Start after a slight delay to ensure UI renders
+                    setTimeout(cleanup, 500);
+          </script>
+</body>
+
+</html>

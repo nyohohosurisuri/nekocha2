@@ -1,0 +1,375 @@
+
+[
+  {
+    "id": "sys_aisha",
+    "title": "アイシャ",
+    "filename": "Aisha.txt",
+    "description": "地質学者を名乗る特務機関のエージェント"
+  },
+  {
+    "id": "sys_iris",
+    "title": "アイリス",
+    "filename": "Iris.txt",
+    "description": "光の王"
+  },
+  {
+    "id": "sys_asteria",
+    "title": "アステリア",
+    "filename": "Asteria.txt",
+    "description": "破壊の神域の守護者"
+  },
+  {
+    "id": "sys_ariashika",
+    "title": "アリアシカ",
+    "filename": "Ariashika.txt",
+    "description": "ムジカ・エルフの少女"
+  },
+  {
+    "id": "sys_alize",
+    "title": "アリーゼ",
+    "filename": "Alize.txt",
+    "description": "自称極悪非道の最新鋭アンドロイド"
+  },
+  {
+    "id": "sys_ixia",
+    "title": "イクシア",
+    "filename": "Ixia.txt",
+    "description": "絆を信じる冒険家"
+  },
+  {
+    "id": "sys_excelia",
+    "title": "エクセリア",
+    "filename": "Excelia.txt",
+    "description": "竜と絆を結ぶドラグナーの王女"
+  },
+  {
+    "id": "sys_esiria",
+    "title": "エシリア",
+    "filename": "Esiria.txt",
+    "description": "「扉」を開く好奇心旺盛な少女"
+  },
+  {
+    "id": "sys_april",
+    "title": "エプリル",
+    "filename": "April.txt",
+    "description": "自称天才のアンドロイド"
+  },
+  {
+    "id": "sys_eleanor",
+    "title": "エレノア",
+    "filename": "Eleanor.txt",
+    "description": "未来から来た光の王の継承者"
+  },
+  {
+    "id": "sys_osucrol",
+    "title": "オスクロル",
+    "filename": "Oscrol.txt",
+    "description": "暁闇の魔王（ギルド職員）"
+  },
+  {
+    "id": "sys_kakuria",
+    "title": "カクリア",
+    "filename": "Caculia.txt",
+    "description": "自称頭脳派の元・結婚詐欺師"
+  },
+  {
+    "id": "sys_kasumi",
+    "title": "カスミ",
+    "filename": "Kasumi.txt",
+    "description": "霊山の守り手の弓士"
+  },
+  {
+    "id": "sys_kamome",
+    "title": "カモメ",
+    "filename": "Kamome.txt",
+    "description": "帝国海軍の元気な水兵"
+  },
+  {
+    "id": "sys_kiara",
+    "title": "キアラ",
+    "filename": "Kiara.txt",
+    "description": "ピザ好きの人工精霊"
+  },
+  {
+    "id": "sys_kuroka",
+    "title": "クロカ",
+    "filename": "Kuroka.txt",
+    "description": "動物好きの活発な少女"
+  },
+  {
+    "id": "sys_koyomi",
+    "title": "コヨミ",
+    "filename": "Koyomi.txt",
+    "description": "弟想いの狼の半獣"
+  },
+  {
+    "id": "sys_colin",
+    "title": "コリン",
+    "filename": "Colin.txt",
+    "description": "変身が得意な天狐の巫女"
+  },
+  {
+    "id": "sys_corne",
+    "title": "コルネ",
+    "filename": "Korne.txt",
+    "description": "ひねくれ者の武器屋の娘"
+  },
+  {
+    "id": "sys_satera",
+    "title": "サテラ",
+    "filename": "Satella.txt",
+    "description": "弟思いのハーレの少女"
+  },
+  {
+    "id": "sys_saya",
+    "title": "サヤ",
+    "filename": "Saya.txt",
+    "description": "破壊の力を持つ少女"
+  },
+  {
+    "id": "sys_siera",
+    "title": "シエラ",
+    "filename": "Sierra.txt",
+    "description": "一角竜と旅する農家の娘"
+  },
+  {
+    "id": "sys_sheworu",
+    "title": "シェヲル",
+    "filename": "Sheworl.txt",
+    "description": "邪竜荘の管理人"
+  },
+  {
+    "id": "sys_shizuku",
+    "title": "シズク",
+    "filename": "Shizuku.txt",
+    "description": "鬼退治一族の当主"
+  },
+  {
+    "id": "sys_charlotte",
+    "title": "シャルロット",
+    "filename": "Charlotte.txt",
+    "description": "光焔の御子"
+  },
+  {
+    "id": "sys_silpha",
+    "title": "シルファ",
+    "filename": "Sylpha.txt",
+    "description": "元・悪の味方の精霊"
+  },
+  {
+    "id": "sys_sera",
+    "title": "セーラ",
+    "filename": "Sera.txt",
+    "description": "親分肌の少女"
+  },
+  {
+    "id": "sys_setsuna",
+    "title": "セツナ",
+    "filename": "Setsuna.txt",
+    "description": "式神使いの巫女"
+  },
+  {
+    "id": "sys_serpina",
+    "title": "セルピナ",
+    "filename": "Serpina.txt",
+    "description": "推し活に生きる半屍者"
+  },
+  {
+    "id": "sys_soara",
+    "title": "ソアラ",
+    "filename": "Soara.txt",
+    "description": "マイペースな勇者"
+  },
+  {
+    "id": "sys_sophie",
+    "title": "ソフィ",
+    "filename": "Sophie.txt",
+    "description": "氷の国の王女"
+  },
+  {
+    "id": "sys_tsukimi",
+    "title": "ツキミ",
+    "filename": "Tsukimi.txt",
+    "description": "旅のおだんご屋さん"
+  },
+  {
+    "id": "sys_tsuyuha",
+    "title": "ツユハ",
+    "filename": "Tsuyuha.txt",
+    "description": "雨の化身の少女"
+  },
+  {
+    "id": "sys_diaize_galatina",
+    "title": "ディアイゼ・ガラティナ",
+    "filename": "Diaize_Galatina.txt",
+    "description": "二つの魂を宿す少女"
+  },
+  {
+    "id": "sys_tina",
+    "title": "ティナ",
+    "filename": "Tina.txt",
+    "description": "最強の血を引く少女"
+  },
+  {
+    "id": "sys_deneb",
+    "title": "デネブ",
+    "filename": "Deneb.txt",
+    "description": "星の瞳を持つ巫女"
+  },
+  {
+    "id": "sys_towa",
+    "title": "トワ",
+    "filename": "Towa.txt",
+    "description": "温泉好きの巫女"
+  },
+  {
+    "id": "sys_niruka",
+    "title": "ニルカ",
+    "filename": "Nilca.txt",
+    "description": "流動の世界の神"
+  },
+  {
+    "id": "sys_noa",
+    "title": "ノア",
+    "filename": "Noah.txt",
+    "description": "絶海の侵略者"
+  },
+  {
+    "id": "sys_noctulica",
+    "title": "ノクタリカ",
+    "filename": "Noctulica.txt",
+    "description": "ムジカ・エルフの音楽家"
+  },
+  {
+    "id": "sys_haruka",
+    "title": "ハルカ",
+    "filename": "Haruka.txt",
+    "description": "一番を目指す白魔術士"
+  },
+  {
+    "id": "sys_harujion",
+    "title": "ハルジオン",
+    "filename": "Halcyon.txt",
+    "description": "嘘つきな看護師"
+  },
+  {
+    "id": "sys_bischetta",
+    "title": "ビスケッタ",
+    "filename": "Bischetta.txt",
+    "description": "食いしん坊な剣士"
+  },
+  {
+    "id": "sys_farie",
+    "title": "ファリエ",
+    "filename": "Falie.txt",
+    "description": "華麗なバトルバニー"
+  },
+  {
+    "id": "sys_fusha",
+    "title": "フーシャ",
+    "filename": "Fusha.txt",
+    "description": "魔眼を持つ狙撃手"
+  },
+  {
+    "id": "sys_fei",
+    "title": "フェイ",
+    "filename": "Faye.txt",
+    "description": "赤い海の封命士"
+  },
+  {
+    "id": "sys_fennecca",
+    "title": "フェネッカ",
+    "filename": "Fennecca.txt",
+    "description": "新卒のギャング"
+  },
+  {
+    "id": "sys_fran",
+    "title": "フラン",
+    "filename": "Fran.txt",
+    "description": "洋ナシ好きの忍者"
+  },
+  {
+    "id": "sys_vega",
+    "title": "ベガ",
+    "filename": "Vega.txt",
+    "description": "レジスタンスの少女"
+  },
+  {
+    "id": "sys_marl",
+    "title": "マール",
+    "filename": "Marl.txt",
+    "description": "ラッキーを届ける天使"
+  },
+  {
+    "id": "sys_mitra",
+    "title": "ミトラ",
+    "filename": "Mitra.txt",
+    "description": "正義の味方を目指すギャル"
+  },
+  {
+    "id": "sys_liche",
+    "title": "リーチェ",
+    "filename": "Lieche.txt",
+    "description": "ハイテンションなカードサモナー"
+  },
+  {
+    "id": "sys_leeran",
+    "title": "リーラン",
+    "filename": "Liran.txt",
+    "description": "タイカンの将軍"
+  },
+  {
+    "id": "sys_risty",
+    "title": "リスティ",
+    "filename": "Listy.txt",
+    "description": "回転羽根の天使"
+  },
+  {
+    "id": "sys_linea",
+    "title": "リネア",
+    "filename": "Linnea.txt",
+    "description": "花園の調査員"
+  },
+  {
+    "id": "sys_lily",
+    "title": "リリー",
+    "filename": "Lily.txt",
+    "description": "コーネル探偵社の社長"
+  },
+  {
+    "id": "sys_liltet",
+    "title": "リルテット",
+    "filename": "Liltet.txt",
+    "description": "新卒の自警団員"
+  },
+  {
+    "id": "sys_roushe",
+    "title": "ルウシェ",
+    "filename": "Rouche.txt",
+    "description": "贖罪の聖女"
+  },
+  {
+    "id": "sys_luka",
+    "title": "ルカ",
+    "filename": "Luka.txt",
+    "description": "熱血守護天使"
+  },
+  {
+    "id": "sys_luna",
+    "title": "ルナ",
+    "filename": "Luna.txt",
+    "description": "叛逆の意志を持つ少女"
+  },
+  {
+    "id": "sys_dark_excelia",
+    "title": "闇エクセリア",
+    "filename": "Dark_Excelia.txt",
+    "description": "最後のドラグナー"
+  },
+  {
+    "id": "sys_dark_eleanor",
+    "title": "闇エレノア",
+    "filename": "Dark_Eleanor.txt",
+    "description": "滅びた未来の生存者"
+  }
+]

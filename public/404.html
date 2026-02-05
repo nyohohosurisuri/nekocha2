@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Redirecting...</title>
+          <script>
+                    // GitHub Pages SPA redirect script
+                    // Converts 404 to SPA navigation by storing path in sessionStorage
+                    // and redirecting to index.html which picks it up
+                    const path = window.location.pathname;
+                    const search = window.location.search;
+                    const hash = window.location.hash;
+
+                    // Store the intended path
+                    sessionStorage.setItem('spa-redirect', path + search + hash);
+
+                    // Redirect to the base path (repository root)
+                    const basePath = '/nekocha2/';
+                    window.location.replace(basePath);
+          </script>
+</head>
+
+<body>
+          <p>Redirecting...</p>
+</body>
+
+</html>
