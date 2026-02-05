@@ -826,9 +826,9 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      <header className={`relative z-10 bg-[#2b3542] text-white px-3 py-2 pt-safe flex items-center justify-between shadow-lg flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`} style={{ paddingTop: `max(env(safe-area-inset-top, 0px), 0.5rem)` }}>
+      <header className={`relative z-10 bg-[#2b3542] text-white px-3 py-1 pt-safe flex items-center justify-between shadow-lg flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`} style={{ paddingTop: `max(env(safe-area-inset-top, 0px), 0.25rem)` }}>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setIsHistoryOpen(true)} className="p-2 hover:bg-white/10 rounded-full">
+          <button type="button" onClick={() => setIsHistoryOpen(true)} className="p-1.5 hover:bg-white/10 rounded-full">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <span className="font-black truncate max-w-[150px]">{config.aiName}</span>
@@ -883,12 +883,12 @@ const AppContent: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsImmersive(true)}
-            className="p-2 hover:bg-white/10 rounded-full"
+            className="p-1.5 hover:bg-white/10 rounded-full"
             title="背景のみ表示"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
           </button>
-          <button type="button" onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/10 rounded-full"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg></button>
+          <button type="button" onClick={() => setIsSettingsOpen(true)} className="p-1.5 hover:bg-white/10 rounded-full"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg></button>
         </div>
       </header >
 
@@ -907,7 +907,7 @@ const AppContent: React.FC = () => {
         {saveStatus === 'error' && <span className="text-[10px] text-red-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm">保存失敗</span>}
       </div>
 
-      <footer className={`relative z-20 bg-white border-t px-3 py-2 pb-safe flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+      <footer className={`relative z-20 bg-white border-t px-3 py-1 pb-safe flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         <div className="max-w-4xl mx-auto flex flex-col gap-2">
           {attachments.length > 0 && (
             <div className="flex gap-2 overflow-x-auto py-2 px-1 scrollbar-hide">
@@ -937,7 +937,7 @@ const AppContent: React.FC = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-3 text-gray-400 hover:text-[#06c755] hover:bg-gray-100 rounded-2xl transition-colors flex-shrink-0"
+              className="p-2 text-gray-400 hover:text-[#06c755] hover:bg-gray-100 rounded-2xl transition-colors flex-shrink-0"
               title="ファイルを添付"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
@@ -961,11 +961,11 @@ const AppContent: React.FC = () => {
                   }
                 }
               }}
-              className={'flex-1 rounded-2xl px-4 py-3 focus:outline-none resize-none min-h-[46px] max-h-[120px] transition-all ' +
+              className={'flex-1 rounded-2xl px-3 py-2 focus:outline-none resize-none min-h-[40px] max-h-[120px] transition-all ' +
                 (editingMessageId ? 'bg-blue-50 border-2 border-blue-400' : 'bg-gray-100')}
               rows={1}
               placeholder={editingMessageId ? 'メッセージを編集中...' : (config.sendOnEnter ? 'メッセージを入力 (Enterで送信)' : 'メッセージを入力')}
-              style={{ height: 'auto', minHeight: '46px' }}
+              style={{ height: 'auto', minHeight: '40px' }}
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement;
                 target.style.height = 'auto';
@@ -977,7 +977,7 @@ const AppContent: React.FC = () => {
               <button
                 type="button"
                 onClick={handleStop}
-                className="bg-red-500 text-white p-2.5 rounded-2xl shadow-md hover:bg-red-600 transition-colors flex items-center justify-center w-[46px] h-[46px] flex-shrink-0"
+                className="bg-red-500 text-white p-2 rounded-2xl shadow-md hover:bg-red-600 transition-colors flex items-center justify-center w-[40px] h-[40px] flex-shrink-0"
               >
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z" /></svg>
               </button>
@@ -986,7 +986,7 @@ const AppContent: React.FC = () => {
                 <button
                   type="button"
                   onClick={cancelEdit}
-                  className="bg-gray-400 text-white p-2.5 rounded-2xl shadow-md hover:bg-gray-500 flex items-center justify-center w-[46px] h-[46px] flex-shrink-0 transition-colors"
+                  className="bg-gray-400 text-white p-2 rounded-2xl shadow-md hover:bg-gray-500 flex items-center justify-center w-[40px] h-[40px] flex-shrink-0 transition-colors"
                   title="編集をキャンセル"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -995,7 +995,7 @@ const AppContent: React.FC = () => {
                   type="button"
                   onClick={handleSend}
                   disabled={!inputText.trim() && attachments.length === 0}
-                  className="bg-blue-500 text-white p-2.5 rounded-2xl shadow-md disabled:bg-gray-300 flex items-center justify-center w-[46px] h-[46px] flex-shrink-0 transition-colors"
+                  className="bg-blue-500 text-white p-2 rounded-2xl shadow-md disabled:bg-gray-300 flex items-center justify-center w-[40px] h-[40px] flex-shrink-0 transition-colors"
                   title="編集して再送信"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -1006,14 +1006,14 @@ const AppContent: React.FC = () => {
                 type="button"
                 onClick={handleSend}
                 disabled={!inputText.trim() && attachments.length === 0}
-                className="bg-[#06c755] text-white p-2.5 rounded-2xl shadow-md disabled:bg-gray-300 flex items-center justify-center w-[46px] h-[46px] flex-shrink-0 transition-colors"
+                className="bg-[#06c755] text-white p-2 rounded-2xl shadow-md disabled:bg-gray-300 flex items-center justify-center w-[40px] h-[40px] flex-shrink-0 transition-colors"
               >
                 <svg className="w-6 h-6 fill-current rotate-90" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
               </button>
             )}
           </div>
           <div className="text-center text-[10px] text-gray-400 mt-2">
-            Ver 1.3.5 (2026/02/06 06:55) - Compact Header/Footer
+            Ver 1.3.6 (2026/02/06 06:59) - Extra Compact Mode
           </div>
         </div>
       </footer>
