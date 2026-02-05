@@ -75,7 +75,7 @@ const DEFAULT_CONFIG: ChatConfig = {
   userName: '',
   userPersona: '',
   relationship: '',
-  bubbleOpacity: 1.0,
+  bubbleOpacity: 0.85,
   backgroundBlur: 0,
   backgroundBrightness: 1.0,
   messageFontSize: 12,
@@ -1014,7 +1014,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.3.10 (2026/02/06 07:46) - Response Length Control
+            Ver 1.3.11 (2026/02/06 07:48) - Bubble Opacity Tuned
           </div>
         </div>
       </footer>
