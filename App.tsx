@@ -1012,8 +1012,8 @@ const AppContent: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="text-center text-[10px] text-gray-400 mt-2">
-            Ver 1.3.6 (2026/02/06 06:59) - Extra Compact Mode
+          <div className="text-center text-[9px] text-gray-300 mt-1">
+            Ver 1.3.7 (2026/02/06 07:05) - Compact Layout Refined
           </div>
         </div>
       </footer>
