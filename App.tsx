@@ -1013,7 +1013,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.3.8 (2026/02/06 07:20) - Sync Logic Improved
+            Ver 1.3.9 (2026/02/06 07:40) - Settings Layout Toned
           </div>
         </div>
       </footer>

@@ -289,27 +289,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-bold text-gray-700">言語</label>
-                                <div className="relative">
-                                    <select
-                                        value={config.language || 'ja'}
-                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, language: e.target.value }))}
-                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none appearance-none"
-                                    >
-                                        <option value="ja">日本語</option>
-                                        <option value="en">English</option>
-                                        <option value="ko">한국어</option>
-                                        <option value="zh-TW">繁體中文</option>
-                                        <option value="zh-CN">简体中文</option>
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-400 ml-1">キャラクターがこの言語で話します</p>
-                            </div>
-
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col items-center">
                                     <span className="text-xs font-bold text-gray-500 mb-2">アイコン</span>
@@ -352,6 +331,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                     </div>
                                     <input type="file" ref={bgRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'backgroundImage')} />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">言語</label>
+                                <div className="relative">
+                                    <select
+                                        value={config.language || 'ja'}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, language: e.target.value }))}
+                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none appearance-none"
+                                    >
+                                        <option value="ja">なし (日本語)</option>
+                                        <option value="en">English</option>
+                                        <option value="ko">한국어</option>
+                                        <option value="zh-TW">繁體中文</option>
+                                        <option value="zh-CN">简体中文</option>
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-400 ml-1">キャラクターがこの言語で話します</p>
                             </div>
                         </div>
                     )}
