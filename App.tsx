@@ -512,11 +512,28 @@ const AppContent: React.FC = () => {
         }
 
         setSaveStatus('saved');
+
+        // Auto Sync with Dropbox
+        if (dropboxUser && !isSyncing) {
+          setIsSyncing(true);
+          // Run sync in background so we don't block the UI responsiveness
+          dropboxService.sync()
+            .then(async (result) => {
+              console.log('[AutoSync] Result:', result);
+              setLastSyncTime(new Date());
+              if (result === 'downloaded') {
+                // Reload current session to reflect merged changes
+                await loadSession(currentSessionId);
+              }
+            })
+            .catch(err => console.error('[AutoSync] Failed:', err))
+            .finally(() => setIsSyncing(false));
+        }
       } catch (e: any) {
         console.error("Auto save failed:", e);
         setSaveStatus('error');
       }
-    }, 1000);
+    }, 1000); // Debounce currently 1000ms
     return () => {
       clearTimeout(timer);
     };
@@ -1014,7 +1031,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.3.11 (2026/02/06 07:48) - Bubble Opacity Tuned
+            Ver 1.3.12 (2026/02/06 07:55) - Auto Sync Fix
           </div>
         </div>
       </footer>
