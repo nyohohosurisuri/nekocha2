@@ -826,7 +826,7 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      <header className={`relative z-10 bg-[#2b3542] text-white p-3 pt-safe flex items-center justify-between shadow-lg flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`} style={{ paddingTop: `max(env(safe-area-inset-top, 0px), 0.75rem)` }}>
+      <header className={`relative z-10 bg-[#2b3542] text-white px-3 py-2 pt-safe flex items-center justify-between shadow-lg flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`} style={{ paddingTop: `max(env(safe-area-inset-top, 0px), 0.5rem)` }}>
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => setIsHistoryOpen(true)} className="p-2 hover:bg-white/10 rounded-full">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -907,7 +907,7 @@ const AppContent: React.FC = () => {
         {saveStatus === 'error' && <span className="text-[10px] text-red-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm">保存失敗</span>}
       </div>
 
-      <footer className={`relative z-20 bg-white border-t p-3 pb-safe flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+      <footer className={`relative z-20 bg-white border-t px-3 py-2 pb-safe flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         <div className="max-w-4xl mx-auto flex flex-col gap-2">
           {attachments.length > 0 && (
             <div className="flex gap-2 overflow-x-auto py-2 px-1 scrollbar-hide">
@@ -1013,7 +1013,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[10px] text-gray-400 mt-2">
-            Ver 1.3.4 (2026/02/06 06:45) - Scroll Toggle Button
+            Ver 1.3.5 (2026/02/06 06:55) - Compact Header/Footer
           </div>
         </div>
       </footer>
