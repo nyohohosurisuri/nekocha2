@@ -44,7 +44,9 @@ export interface ChatConfig {
   useFunctionCalling?: boolean;
   allowUIChange?: boolean;
   forceFunctionCall?: boolean;
-  // Dropbox Config
+  // Cloud Sync Config
+  syncProvider?: 'dropbox' | 'googledrive';
+  googleDriveClientId?: string;
   dropboxAppKey?: string;
   autoBackupEnabled?: boolean;
   autoBackupInterval?: number; // 0: Manual, 1: Immediate, 5/10/30: Messages
@@ -95,4 +97,11 @@ export interface DropboxTokens {
 export interface DropboxSettings {
   autoSync?: boolean;
   [key: string]: any;
+}
+
+export interface GoogleDriveTokens {
+  access_token: string;
+  expires_at: number;
+  scope: string;
+  token_type: string;
 }

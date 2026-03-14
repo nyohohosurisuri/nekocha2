@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ChatConfig, PromptPreset } from '../types';
 import { dbService } from '../services/db';
 import { dropboxService } from '../services/dropboxService';
+import { googleDriveService } from '../services/googleDriveService';
 import { ImageCropper } from './ImageCropper';
 import { ImageUrlInput } from './ImageUrlInput';
 
@@ -13,6 +14,8 @@ interface SettingsModalProps {
     onRestoreComplete: () => void;
     dropboxUser: string | null;
     setDropboxUser: (user: string | null) => void;
+    googleDriveUser: string | null;
+    setGoogleDriveUser: (user: string | null) => void;
 }
 
 type TabType = 'basic' | 'user' | 'character' | 'appearance' | 'tools' | 'advanced' | 'system' | 'backup';
@@ -29,12 +32,14 @@ const TAB_LABELS: Record<TabType, string> = {
 };
 
 const MODEL_OPTIONS = [
+    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+    { value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite (Preview)' },
     { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Preview)' },
     { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
     { value: 'gemini-3-flash-thinking-exp', label: 'Gemini 3 Flash Thinking (Exp)' },
 ];
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, config, onUpdateConfig, onRestoreComplete, dropboxUser, setDropboxUser }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, config, onUpdateConfig, onRestoreComplete, dropboxUser, setDropboxUser, googleDriveUser, setGoogleDriveUser }) => {
     const [activeTab, setActiveTab] = useState<TabType>('basic');
     const [presets, setPresets] = useState<PromptPreset[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -810,11 +815,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                         <div className="space-y-6 max-w-lg mx-auto animate-fade-in">
                             <div className="bg-white p-5 rounded-xl border border-gray-200">
                                 <h3 className="font-bold text-base text-gray-800 mb-4 flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-[#0061FE]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 3l-6 4.5 6 4.5 6-4.5-6-4.5zm12 0l-6 4.5 6 4.5 6-4.5-6-4.5zm-12 18l-6-4.5 5.25-3.938 6.75 5.063-6 3.375zm12 0l-6-3.375 6.75-5.063 5.25 3.938-6 4.5zm-6-6.375l-5.625-4.219-5.625 4.219-6-4.5 11.625-8.625 11.625 8.625-6 4.5-5.625-4.219-5.625 4.219z" /></svg>
+                                    <svg className="w-5 h-5 text-[#0061FE]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                                     データ同期 (Smart Sync)
                                 </h3>
 
                                 <div className="space-y-4">
+                                    {/* Sync Provider Selector */}
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-4">
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">同期先:</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => onUpdateConfig(prev => ({ ...prev, syncProvider: 'dropbox' }))}
+                                                className={'py-2.5 rounded-lg font-bold text-sm transition-all border ' +
+                                                    ((config.syncProvider || 'dropbox') === 'dropbox'
+                                                        ? 'bg-[#0061FE] text-white border-[#0061FE] shadow-sm'
+                                                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50')}
+                                            >
+                                                Dropbox
+                                            </button>
+                                            <button
+                                                onClick={() => onUpdateConfig(prev => ({ ...prev, syncProvider: 'googledrive' }))}
+                                                className={'py-2.5 rounded-lg font-bold text-sm transition-all border ' +
+                                                    (config.syncProvider === 'googledrive'
+                                                        ? 'bg-[#4285F4] text-white border-[#4285F4] shadow-sm'
+                                                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50')}
+                                            >
+                                                Google Drive
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Auto Sync Interval */}
                                     <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
                                         <label className="block text-xs font-bold text-gray-500 mb-1">セッションの自動同期のタイミング:</label>
                                         <select
@@ -825,7 +856,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                                     ...prev,
                                                     autoBackupEnabled: val > 0,
                                                     autoBackupInterval: val,
-                                                    messageCountSinceLastBackup: 0 // Reset counter on change
+                                                    messageCountSinceLastBackup: 0
                                                 }));
                                             }}
                                             className="w-full p-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0061FE]"
@@ -838,139 +869,341 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                         </select>
                                     </div>
 
-                                    {dropboxUser ? (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                                <span><span className="font-bold">{dropboxUser}</span> のアカウントと連携済みです。</span>
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                最終同期: {config.lastBackupTime ? new Date(config.lastBackupTime).toLocaleString() : 'なし'}
-                                            </div>
+                                    {/* === Dropbox Section === */}
+                                    {(config.syncProvider || 'dropbox') === 'dropbox' && (
+                                        <>
+                                            {dropboxUser ? (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                        <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                        <span><span className="font-bold">{dropboxUser}</span> のアカウントと連携済みです。</span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        最終同期: {config.lastBackupTime ? new Date(config.lastBackupTime).toLocaleString() : 'なし'}
+                                                    </div>
 
-                                            <div className="pt-2">
-                                                <div className="font-bold text-sm text-gray-800 mb-2">同期オプション:</div>
-                                                <button
-                                                    onClick={async () => {
-                                                        setIsProcessing(true);
-                                                        setProcessStatus("スマート同期中...");
-                                                        try {
-                                                            const result = await dropboxService.sync();
-                                                            onUpdateConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+                                                    <div className="pt-2">
+                                                        <div className="font-bold text-sm text-gray-800 mb-2">同期オプション:</div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                setIsProcessing(true);
+                                                                setProcessStatus("スマート同期中...");
+                                                                try {
+                                                                    const result = await dropboxService.sync();
+                                                                    onUpdateConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+                                                                    let msg = "同期完了: 最新の状態です。";
+                                                                    if (result === 'uploaded') msg = "同期完了: クラウドへアップロードしました。";
+                                                                    if (result === 'downloaded') {
+                                                                        msg = "同期完了: クラウドから復元しました。リロードします。";
+                                                                        alert(msg);
+                                                                        window.location.reload();
+                                                                        return;
+                                                                    }
+                                                                    alert(msg);
+                                                                } catch (e: any) {
+                                                                    alert("同期失敗: " + (e.message || JSON.stringify(e)));
+                                                                    console.error(e);
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                            className="w-full py-3 bg-[#0061FE] text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                            スマート同期 (推奨)
+                                                        </button>
+                                                        <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                                                            ※新しい方のデータを優先して同期します。
+                                                        </p>
+                                                    </div>
 
-                                                            let msg = "同期完了: 最新の状態です。";
-                                                            if (result === 'uploaded') msg = "同期完了: クラウドへアップロードしました。";
-                                                            if (result === 'downloaded') {
-                                                                msg = "同期完了: クラウドから復元しました。リロードします。";
-                                                                alert(msg);
-                                                                window.location.reload();
-                                                                return;
+                                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm("現在のデータでクラウドを上書きしますか？")) return;
+                                                                setIsProcessing(true);
+                                                                setProcessStatus("アップロード中...");
+                                                                try {
+                                                                    const json = await dbService.exportAllData();
+                                                                    await dropboxService.uploadData(json);
+                                                                    onUpdateConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+                                                                    alert("アップロードしました！");
+                                                                } catch (e: any) {
+                                                                    alert("失敗: " + e.message);
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                            className="py-2 bg-white border border-gray-300 text-gray-600 rounded-lg font-bold text-xs hover:bg-gray-50"
+                                                        >
+                                                            強制アップロード
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm("クラウドにデータがない場合エラーになります。\n現在のデータを上書きして復元しますか？")) return;
+                                                                setIsProcessing(true);
+                                                                setProcessStatus("ダウンロード中...");
+                                                                try {
+                                                                    const json = await dropboxService.downloadData();
+                                                                    if (!json) throw new Error("クラウドにデータがありません");
+                                                                    await dbService.restoreAllData(json);
+                                                                    alert("復元しました！リロードします。");
+                                                                    window.location.reload();
+                                                                } catch (e: any) {
+                                                                    alert("失敗: " + e.message);
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                            className="py-2 bg-white border border-gray-300 text-gray-600 rounded-lg font-bold text-xs hover:bg-gray-50"
+                                                        >
+                                                            強制ダウンロード
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-gray-100">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm("Dropboxとの連携を解除しますか？")) return;
+                                                                try {
+                                                                    await dropboxService.disconnect();
+                                                                    setDropboxUser(null);
+                                                                    alert("連携を解除しました。");
+                                                                } catch (e: any) {
+                                                                    setDropboxUser(null);
+                                                                    alert("連携を解除しました。");
+                                                                }
+                                                            }}
+                                                            className="w-full py-2 bg-red-50 text-red-600 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors"
+                                                        >
+                                                            連携を解除
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    <div className="text-sm text-gray-600 leading-relaxed">
+                                                        Dropboxアカウントと連携して、異なるブラウザ間でPWAの全データを安全に同期します。<br />
+                                                        スマート同期機能により、常に最新のデータを自動的に判別して同期します。
+                                                    </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const authUrl = await dropboxService.generateAuthUrl();
+                                                                window.location.href = authUrl;
+                                                            } catch (e: any) {
+                                                                alert("認証エラー: " + e.message);
                                                             }
-                                                            alert(msg);
-                                                        } catch (e: any) {
-                                                            alert("同期失敗: " + (e.message || JSON.stringify(e)));
-                                                            console.error(e);
-                                                        } finally {
-                                                            setIsProcessing(false);
-                                                        }
-                                                    }}
-                                                    className="w-full py-3 bg-[#0061FE] text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                                    スマート同期 (推奨)
-                                                </button>
-                                                <p className="text-[10px] text-gray-400 mt-1 ml-1">
-                                                    ※新しい方のデータを優先して同期します。
-                                                </p>
-                                            </div>
+                                                        }}
+                                                        className="w-full py-3 bg-[#0061FE] text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 3l-6 4.5 6 4.5 6-4.5-6-4.5zm12 0l-6 4.5 6 4.5 6-4.5-6-4.5zm-12 18l-6-4.5 5.25-3.938 6.75 5.063-6 3.375zm12 0l-6-3.375 6.75-5.063 5.25 3.938-6 4.5zm-6-6.375l-5.625-4.219-5.625 4.219-6-4.5 11.625-8.625 11.625 8.625-6 4.5-5.625-4.219-5.625 4.219z" /></svg>
+                                                        Dropboxと連携する
+                                                    </button>
+                                                    <div className="text-[10px] text-gray-400 text-center font-mono">
+                                                        Redirect URI: {dropboxService.getCurrentRedirectUri()}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
 
-                                            <div className="grid grid-cols-2 gap-2 pt-2">
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm("現在のデータでクラウドを上書きしますか？")) return;
-                                                        setIsProcessing(true);
-                                                        setProcessStatus("アップロード中...");
-                                                        try {
-                                                            const json = await dbService.exportAllData();
-                                                            await dropboxService.uploadData(json);
-                                                            onUpdateConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
-                                                            alert("アップロードしました！");
-                                                        } catch (e: any) {
-                                                            alert("失敗: " + e.message);
-                                                        } finally {
-                                                            setIsProcessing(false);
-                                                        }
-                                                    }}
-                                                    className="py-2 bg-white border border-gray-300 text-gray-600 rounded-lg font-bold text-xs hover:bg-gray-50"
-                                                >
-                                                    強制アップロード
-                                                </button>
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm("クラウドにデータがない場合エラーになります。\n現在のデータを上書きして復元しますか？")) return;
-                                                        setIsProcessing(true);
-                                                        setProcessStatus("ダウンロード中...");
-                                                        try {
-                                                            const json = await dropboxService.downloadData();
-                                                            if (!json) throw new Error("クラウドにデータがありません");
-                                                            await dbService.restoreAllData(json);
-                                                            alert("復元しました！リロードします。");
-                                                            window.location.reload();
-                                                        } catch (e: any) {
-                                                            alert("失敗: " + e.message);
-                                                        } finally {
-                                                            setIsProcessing(false);
-                                                        }
-                                                    }}
-                                                    className="py-2 bg-white border border-gray-300 text-gray-600 rounded-lg font-bold text-xs hover:bg-gray-50"
-                                                >
-                                                    強制ダウンロード
-                                                </button>
-                                            </div>
+                                    {/* === Google Drive Section === */}
+                                    {config.syncProvider === 'googledrive' && (
+                                        <>
+                                            {/* Client ID Input */}
+                                            {!config.googleDriveClientId && (
+                                                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mb-2">
+                                                    <label className="block text-xs font-bold text-gray-600 mb-1">Google Cloud Client ID:</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            id="gdrive-client-id-input"
+                                                            placeholder="xxxxxxx.apps.googleusercontent.com"
+                                                            className="flex-1 p-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#4285F4] font-mono"
+                                                        />
+                                                        <button
+                                                            onClick={() => {
+                                                                const input = document.getElementById('gdrive-client-id-input') as HTMLInputElement;
+                                                                const clientId = input?.value?.trim();
+                                                                if (clientId) {
+                                                                    onUpdateConfig(prev => ({ ...prev, googleDriveClientId: clientId }));
+                                                                } else {
+                                                                    alert('Client IDを入力してください。');
+                                                                }
+                                                            }}
+                                                            className="px-3 py-2 bg-[#4285F4] text-white rounded-lg font-bold text-xs hover:bg-blue-600"
+                                                        >
+                                                            保存
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 mt-1">
+                                                        Google Cloud ConsoleでOAuth 2.0クライアントIDを作成してください。
+                                                    </p>
+                                                </div>
+                                            )}
 
-                                            <div className="pt-4 border-t border-gray-100">
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm("Dropboxとの連携を解除しますか？")) return;
-                                                        try {
-                                                            await dropboxService.disconnect();
-                                                            setDropboxUser(null);
-                                                            alert("連携を解除しました。");
-                                                        } catch (e: any) {
-                                                            setDropboxUser(null);
-                                                            alert("連携を解除しました。");
-                                                        }
-                                                    }}
-                                                    className="w-full py-2 bg-red-50 text-red-600 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors"
-                                                >
-                                                    連携を解除
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <div className="text-sm text-gray-600 leading-relaxed">
-                                                Dropboxアカウントと連携して、異なるブラウザ間でPWAの全データを安全に同期します。<br />
-                                                スマート同期機能により、常に最新のデータを自動的に判別して同期します。
-                                            </div>
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        const authUrl = await dropboxService.generateAuthUrl();
-                                                        window.location.href = authUrl;
-                                                    } catch (e: any) {
-                                                        alert("認証エラー: " + e.message);
-                                                    }
-                                                }}
-                                                className="w-full py-3 bg-[#0061FE] text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2"
-                                            >
-                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 3l-6 4.5 6 4.5 6-4.5-6-4.5zm12 0l-6 4.5 6 4.5 6-4.5-6-4.5zm-12 18l-6-4.5 5.25-3.938 6.75 5.063-6 3.375zm12 0l-6-3.375 6.75-5.063 5.25 3.938-6 4.5zm-6-6.375l-5.625-4.219-5.625 4.219-6-4.5 11.625-8.625 11.625 8.625-6 4.5-5.625-4.219-5.625 4.219z" /></svg>
-                                                Dropboxと連携する
-                                            </button>
-                                            <div className="text-[10px] text-gray-400 text-center font-mono">
-                                                Redirect URI: {dropboxService.getCurrentRedirectUri()}
-                                            </div>
-                                        </div>
+                                            {config.googleDriveClientId && googleDriveUser ? (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                        <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                        <span><span className="font-bold">{googleDriveUser}</span> のアカウントと連携済みです。</span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        最終同期: {config.lastBackupTime ? new Date(config.lastBackupTime).toLocaleString() : 'なし'}
+                                                    </div>
+
+                                                    <div className="pt-2">
+                                                        <div className="font-bold text-sm text-gray-800 mb-2">同期オプション:</div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                setIsProcessing(true);
+                                                                setProcessStatus("スマート同期中...");
+                                                                try {
+                                                                    const result = await googleDriveService.sync();
+                                                                    onUpdateConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+                                                                    let msg = "同期完了: 最新の状態です。";
+                                                                    if (result === 'uploaded') msg = "同期完了: Google Driveへアップロードしました。";
+                                                                    if (result === 'downloaded') {
+                                                                        msg = "同期完了: Google Driveから復元しました。リロードします。";
+                                                                        alert(msg);
+                                                                        window.location.reload();
+                                                                        return;
+                                                                    }
+                                                                    alert(msg);
+                                                                } catch (e: any) {
+                                                                    alert("同期失敗: " + (e.message || JSON.stringify(e)));
+                                                                    console.error(e);
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                            className="w-full py-3 bg-[#4285F4] text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                            スマート同期 (推奨)
+                                                        </button>
+                                                        <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                                                            ※新しい方のデータを優先して同期します。
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm("現在のデータでGoogle Driveを上書きしますか？")) return;
+                                                                setIsProcessing(true);
+                                                                setProcessStatus("アップロード中...");
+                                                                try {
+                                                                    const json = await dbService.exportAllData();
+                                                                    await googleDriveService.uploadData(json);
+                                                                    onUpdateConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+                                                                    alert("アップロードしました！");
+                                                                } catch (e: any) {
+                                                                    alert("失敗: " + e.message);
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                            className="py-2 bg-white border border-gray-300 text-gray-600 rounded-lg font-bold text-xs hover:bg-gray-50"
+                                                        >
+                                                            強制アップロード
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm("Google Driveにデータがない場合エラーになります。\n現在のデータを上書きして復元しますか？")) return;
+                                                                setIsProcessing(true);
+                                                                setProcessStatus("ダウンロード中...");
+                                                                try {
+                                                                    const json = await googleDriveService.downloadData();
+                                                                    if (!json) throw new Error("Google Driveにデータがありません");
+                                                                    await dbService.restoreAllData(json);
+                                                                    alert("復元しました！リロードします。");
+                                                                    window.location.reload();
+                                                                } catch (e: any) {
+                                                                    alert("失敗: " + e.message);
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                            className="py-2 bg-white border border-gray-300 text-gray-600 rounded-lg font-bold text-xs hover:bg-gray-50"
+                                                        >
+                                                            強制ダウンロード
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-gray-100 space-y-2">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm("Google Driveとの連携を解除しますか？")) return;
+                                                                try {
+                                                                    await googleDriveService.disconnect();
+                                                                    setGoogleDriveUser(null);
+                                                                    alert("連携を解除しました。");
+                                                                } catch (e: any) {
+                                                                    setGoogleDriveUser(null);
+                                                                    alert("連携を解除しました。");
+                                                                }
+                                                            }}
+                                                            className="w-full py-2 bg-red-50 text-red-600 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors"
+                                                        >
+                                                            連携を解除
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Client IDを変更しますか？現在の連携も解除されます。')) {
+                                                                    googleDriveService.disconnect();
+                                                                    setGoogleDriveUser(null);
+                                                                    onUpdateConfig(prev => ({ ...prev, googleDriveClientId: undefined }));
+                                                                }
+                                                            }}
+                                                            className="w-full py-2 bg-gray-50 text-gray-500 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            Client IDを変更
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : config.googleDriveClientId ? (
+                                                <div className="space-y-4">
+                                                    <div className="text-sm text-gray-600 leading-relaxed">
+                                                        Google Driveアカウントと連携して、異なるブラウザ間でPWAの全データを安全に同期します。<br />
+                                                        スマート同期機能により、常に最新のデータを自動的に判別して同期します。
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            try {
+                                                                const authUrl = googleDriveService.generateAuthUrl(config.googleDriveClientId!);
+                                                                window.location.href = authUrl;
+                                                            } catch (e: any) {
+                                                                alert("認証エラー: " + e.message);
+                                                            }
+                                                        }}
+                                                        className="w-full py-3 bg-[#4285F4] text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                    >
+                                                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+                                                        Google Driveと連携する
+                                                    </button>
+                                                    <div className="text-[10px] text-gray-400 text-center font-mono">
+                                                        Redirect URI: {googleDriveService.getCurrentRedirectUri()}
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="text-[10px] text-gray-400 font-mono truncate flex-1">
+                                                            Client ID: {config.googleDriveClientId.slice(0, 20)}...
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Client IDを変更しますか？')) {
+                                                                    onUpdateConfig(prev => ({ ...prev, googleDriveClientId: undefined }));
+                                                                }
+                                                            }}
+                                                            className="text-[10px] text-gray-400 hover:text-gray-600 underline ml-2"
+                                                        >
+                                                            変更
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : null}
+                                        </>
                                     )}
 
                                 </div>

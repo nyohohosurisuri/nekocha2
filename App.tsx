@@ -5,6 +5,7 @@ import { HistorySidebar } from './components/HistorySidebar';
 import { initializeChat, sendMessageStream } from './services/geminiService';
 import { dbService } from './services/db';
 import { dropboxService } from './services/dropboxService';
+import { googleDriveService } from './services/googleDriveService';
 import { ChatConfig, Message, ChatSession, Attachment } from './types';
 
 interface ErrorBoundaryProps {
@@ -70,7 +71,7 @@ const DEFAULT_CONFIG: ChatConfig = {
   aiAvatar: null,
   backgroundImage: null,
   systemInstruction: 'あなたは親切なAIアシスタントです。',
-  model: 'gemini-3-flash-preview',
+  model: 'gemini-3.1-pro-preview',
   language: 'ja',
   userName: '',
   userPersona: '',
@@ -118,6 +119,7 @@ const AppContent: React.FC = () => {
   const [isImmersive, setIsImmersive] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null); // null = checking
   const [dropboxUser, setDropboxUser] = useState<string | null>(null);
+  const [googleDriveUser, setGoogleDriveUser] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -316,6 +318,80 @@ const AppContent: React.FC = () => {
           } catch (e: any) {
             console.log("Dropbox check failed", e);
           }
+
+          // Check Google Drive auth redirect callback
+          if (window.location.hash && window.location.hash.includes('access_token')) {
+            console.log('[Google Drive] Detected auth redirect callback');
+            try {
+              const tokens = await googleDriveService.handleAuthCallback();
+              if (tokens) {
+                console.log('[Google Drive] Auth successful, tokens saved');
+                setGoogleDriveUser('接続済み');
+
+                try {
+                  const userInfo = await googleDriveService.getUserInfo();
+                  setGoogleDriveUser(userInfo.name || userInfo.email);
+                } catch (e) {
+                  console.log('[Google Drive] Failed to get user info after auth', e);
+                }
+
+                // Auto sync after first connection
+                try {
+                  console.log('[Google Drive] Starting initial sync...');
+                  const syncResult = await googleDriveService.sync();
+                  console.log('[Google Drive] Initial sync result:', syncResult);
+                  setLastSyncTime(new Date());
+                  if (syncResult === 'downloaded') {
+                    sessionStorage.setItem('just_synced', 'true');
+                    window.location.reload();
+                    return;
+                  }
+                } catch (syncError: any) {
+                  console.warn('[Google Drive] Initial sync failed:', syncError);
+                }
+              }
+            } catch (e: any) {
+              console.error('[Google Drive] Auth callback failed:', e);
+            }
+          }
+
+          // Check Google Drive connection on load (existing tokens)
+          try {
+            const isAuth = await googleDriveService.isAuthenticated();
+            if (isAuth) {
+              console.log('[Google Drive] Found valid cached tokens');
+              setGoogleDriveUser('接続済み');
+
+              try {
+                const userInfo = await googleDriveService.getUserInfo();
+                setGoogleDriveUser(userInfo.name || userInfo.email);
+              } catch (e) {
+                console.log('[Google Drive] Failed to get user info on load', e);
+              }
+
+              // Auto sync on page load for Google Drive
+              const justSynced = sessionStorage.getItem('just_synced');
+              if (!justSynced) {
+                try {
+                  console.log('[Google Drive] Starting auto-sync on page load...');
+                  const syncResult = await googleDriveService.sync();
+                  console.log('[Google Drive] Auto-sync result:', syncResult);
+                  setLastSyncTime(new Date());
+
+                  if (syncResult === 'downloaded') {
+                    console.log('[Google Drive] Cloud data is newer, reloading...');
+                    sessionStorage.setItem('just_synced', 'true');
+                    window.location.reload();
+                    return;
+                  }
+                } catch (syncError: any) {
+                  console.warn('[Google Drive] Auto-sync failed:', syncError);
+                }
+              }
+            }
+          } catch (e: any) {
+            console.log("Google Drive check failed", e);
+          }
         }
       };
       window.requestAnimationFrame(() => init());
@@ -337,17 +413,35 @@ const AppContent: React.FC = () => {
         ignoreNextSaveRef.current = true;
       }
 
-      const isAuth = await dropboxService.isAuthenticated();
-      if (isAuth) {
-        const result = await dropboxService.sync();
-        setConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
-        console.log("Auto-sync result:", result);
+      // Determine which provider to use
+      const provider = config.syncProvider || 'dropbox';
 
-        if (result === 'downloaded') {
-          console.log("New data downloaded from cloud, reloading...");
-          window.location.reload();
+      if (provider === 'dropbox') {
+        const isAuth = await dropboxService.isAuthenticated();
+        if (isAuth) {
+          const result = await dropboxService.sync();
+          setConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+          console.log("Auto-sync result (Dropbox):", result);
+
+          if (result === 'downloaded') {
+            console.log("New data downloaded from Dropbox, reloading...");
+            window.location.reload();
+          }
+          return true;
         }
-        return true;
+      } else if (provider === 'googledrive') {
+        const isAuth = await googleDriveService.isAuthenticated();
+        if (isAuth) {
+          const result = await googleDriveService.sync();
+          setConfig(prev => ({ ...prev, lastBackupTime: Date.now() }));
+          console.log("Auto-sync result (Google Drive):", result);
+
+          if (result === 'downloaded') {
+            console.log("New data downloaded from Google Drive, reloading...");
+            window.location.reload();
+          }
+          return true;
+        }
       }
     } catch (e) {
       console.error("Auto-sync failed", e);
@@ -513,11 +607,17 @@ const AppContent: React.FC = () => {
 
         setSaveStatus('saved');
 
-        // Auto Sync with Dropbox
-        if (dropboxUser && !isSyncing) {
+        // Auto Sync with active provider
+        const provider = config.syncProvider || 'dropbox';
+        const isConnected = provider === 'dropbox' ? !!dropboxUser : !!googleDriveUser;
+
+        if (isConnected && !isSyncing) {
           setIsSyncing(true);
-          // Run sync in background so we don't block the UI responsiveness
-          dropboxService.sync()
+          const syncPromise = provider === 'dropbox'
+            ? dropboxService.sync()
+            : googleDriveService.sync();
+
+          syncPromise
             .then(async (result) => {
               console.log('[AutoSync] Result:', result);
               setLastSyncTime(new Date());
@@ -1031,7 +1131,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.3.12 (2026/02/06 07:55) - Auto Sync Fix
+            Ver 1.4.0 (2026/02/13) - Google Drive Sync
           </div>
         </div>
       </footer>
@@ -1093,6 +1193,8 @@ const AppContent: React.FC = () => {
         onRestoreComplete={handleRestoreComplete}
         dropboxUser={dropboxUser}
         setDropboxUser={setDropboxUser}
+        googleDriveUser={googleDriveUser}
+        setGoogleDriveUser={setGoogleDriveUser}
       />
     </div >
   );
