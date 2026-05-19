@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-chat-v33-sync-fix';
+const CACHE_NAME = 'ai-chat-v34-emoji-tts';
 const ASSETS = [
   './',
   './index.html',
