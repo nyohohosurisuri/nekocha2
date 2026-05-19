@@ -1231,7 +1231,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.4.0 (2026/02/13) - Google Drive Sync
+            Ver 1.5.0 (2026/05/20) - Emoji-TTS Voice
           </div>
         </div>
       </footer>

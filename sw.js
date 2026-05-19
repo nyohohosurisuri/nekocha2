@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'ai-chat-v31-pwa-query'; // バージョンを更新
+const CACHE_NAME = 'ai-chat-v32-emoji-tts';
 const ASSETS = [
   './',
   './index.html',
