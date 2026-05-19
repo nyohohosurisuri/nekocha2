@@ -38,6 +38,29 @@ const normalizeServerUrl = (serverUrl?: string): string => {
   return raw || DEFAULT_TTS_SERVER_URL;
 };
 
+const isPrivateIpv4Host = (host: string): boolean => {
+  return /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+};
+
+const isHttpsPageWithPrivateHttpServer = (serverUrl: string): boolean => {
+  if (typeof window === 'undefined' || window.location.protocol !== 'https:') return false;
+  try {
+    const parsed = new URL(serverUrl);
+    return parsed.protocol === 'http:' && isPrivateIpv4Host(parsed.hostname);
+  } catch {
+    return false;
+  }
+};
+
+const connectionErrorMessage = (serverUrl: string): string => {
+  if (isHttpsPageWithPrivateHttpServer(serverUrl)) {
+    return 'iPhone Safariでは公開URL(HTTPS)からPC内のEmoji-TTS(HTTP)へ接続できない場合があります。PCでローカル確認用URLを起動し、iPhoneでは http://PCのIP:4173 を開いてください。';
+  }
+  return 'Emoji-TTSに接続できませんでした。Emoji-TTSを起動してから更新してください。';
+};
+
 const parseSseCompleteData = (body: string): any[] => {
   let currentEvent = '';
   let currentData: string[] = [];
@@ -75,11 +98,16 @@ const parseSseCompleteData = (body: string): any[] => {
 
 const callGradioApi = async (serverUrl: string, apiName: string, data: any[]): Promise<any[]> => {
   const baseUrl = normalizeServerUrl(serverUrl);
-  const startResponse = await fetch(`${baseUrl}/gradio_api/call/${apiName}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data }),
-  });
+  let startResponse: Response;
+  try {
+    startResponse = await fetch(`${baseUrl}/gradio_api/call/${apiName}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data }),
+    });
+  } catch {
+    throw new Error(connectionErrorMessage(baseUrl));
+  }
 
   if (!startResponse.ok) {
     throw new Error(`Emoji-TTS APIを開始できませんでした (${startResponse.status})。`);
@@ -91,7 +119,12 @@ const callGradioApi = async (serverUrl: string, apiName: string, data: any[]): P
     throw new Error('Emoji-TTS APIのイベントIDが取得できませんでした。');
   }
 
-  const resultResponse = await fetch(`${baseUrl}/gradio_api/call/${apiName}/${eventId}`);
+  let resultResponse: Response;
+  try {
+    resultResponse = await fetch(`${baseUrl}/gradio_api/call/${apiName}/${eventId}`);
+  } catch {
+    throw new Error(connectionErrorMessage(baseUrl));
+  }
   if (!resultResponse.ok) {
     throw new Error(`Emoji-TTS APIの結果取得に失敗しました (${resultResponse.status})。`);
   }

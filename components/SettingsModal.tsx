@@ -62,6 +62,28 @@ const getCurrentPageTtsUrlCandidate = (): string => {
     return isPrivateIpv4Host(host) ? `http://${host}:7862` : "";
 };
 
+const normalizeLocalAppUrlCandidate = (url: string): string => {
+    try {
+        const parsed = new URL(url);
+        return `http://${parsed.hostname}:4173`;
+    } catch {
+        return "";
+    }
+};
+
+const isHttpsPage = (): boolean => {
+    return typeof window !== 'undefined' && window.location.protocol === 'https:';
+};
+
+const isPrivateHttpUrl = (url: string): boolean => {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" && isPrivateIpv4Host(parsed.hostname);
+    } catch {
+        return false;
+    }
+};
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, config, onUpdateConfig, onRestoreComplete, dropboxUser, setDropboxUser, googleDriveUser, setGoogleDriveUser }) => {
     const [activeTab, setActiveTab] = useState<TabType>('basic');
     const [presets, setPresets] = useState<PromptPreset[]>([]);
@@ -83,18 +105,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
             ...(ttsOptions?.lan_urls || []),
             getCurrentPageTtsUrlCandidate(),
             normalizeTtsUrlCandidate(config.ttsServerUrl || ""),
-        ].filter((url): url is string => {
-            if (!url) return false;
-            try {
-                const parsed = new URL(url);
-                return parsed.protocol === "http:" && isPrivateIpv4Host(parsed.hostname);
-            } catch {
-                return false;
-            }
-        });
+        ].filter((url): url is string => !!url && isPrivateHttpUrl(url));
 
         return Array.from(new Set(candidates));
     }, [ttsOptions, config.ttsServerUrl]);
+
+    const ttsLocalAppUrlCandidates = useMemo(() => {
+        const candidates = [
+            normalizeLocalAppUrlCandidate(config.ttsServerUrl || ""),
+            ...ttsLanUrlCandidates.map(normalizeLocalAppUrlCandidate),
+        ].filter((url): url is string => !!url && isPrivateHttpUrl(url));
+
+        return Array.from(new Set(candidates));
+    }, [ttsLanUrlCandidates, config.ttsServerUrl]);
+
+    const shouldShowIphoneHttpsWarning = isHttpsPage() && isPrivateHttpUrl(config.ttsServerUrl || DEFAULT_TTS_SERVER_URL);
 
     useEffect(() => {
         if (isOpen) {
@@ -134,7 +159,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
             }));
         } catch (e: any) {
             console.error("Failed to load Emoji-TTS options:", e);
-            setTtsStatus("接続できませんでした。Emoji-TTSを起動してから更新してください。");
+            setTtsStatus(e?.message || "接続できませんでした。Emoji-TTSを起動してから更新してください。");
         } finally {
             setIsLoadingTtsOptions(false);
         }
@@ -779,6 +804,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                         先に C:\Users\mokom\Emoji-TTS\起動.bat でEmoji-TTSを起動してください。
                                     </p>
                                     {ttsStatus && <p className="text-xs text-gray-500 mt-2 ml-1">{ttsStatus}</p>}
+                                    {shouldShowIphoneHttpsWarning && (
+                                        <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                                            <p className="text-[11px] font-bold text-amber-800 mb-1">iPhone Safari用の開き方</p>
+                                            <p className="text-xs text-amber-800 leading-relaxed">
+                                                この公開URLからは、SafariがPC内のEmoji-TTSへの接続を止めることがあります。PCで D:\nekocha2\ローカルで確認.bat を起動し、iPhoneでは下のアプリURLを開いてください。
+                                            </p>
+                                            {ttsLocalAppUrlCandidates.length > 0 && (
+                                                <div className="flex flex-col gap-2 mt-2">
+                                                    {ttsLocalAppUrlCandidates.map(url => (
+                                                        <a
+                                                            key={url}
+                                                            href={url}
+                                                            className="text-left text-xs font-mono bg-white border border-amber-200 rounded-lg px-3 py-2 text-amber-900 break-all"
+                                                        >
+                                                            {url}
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
                                         <p className="text-[11px] font-bold text-gray-600 mb-2">同じWi-FiのiPhone用URL</p>
                                         {ttsLanUrlCandidates.length ? (
