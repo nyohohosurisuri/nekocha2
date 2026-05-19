@@ -107,6 +107,21 @@ const isCustomTtsServerUrl = (serverUrl?: string): boolean => {
   return !!value && value !== DEFAULT_TTS_SERVER_URL;
 };
 
+const isIosLikeBrowser = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+const isPlaybackPermissionError = (error: any): boolean => {
+  const message = String(error?.message || error || '').toLowerCase();
+  return error?.name === 'NotAllowedError' ||
+    message.includes('request is not allowed') ||
+    message.includes('user agent') ||
+    message.includes('denied permission') ||
+    message.includes('play() failed');
+};
+
 // Global type definition for aistudio
 declare global {
   interface Window {
@@ -770,8 +785,11 @@ const AppContent: React.FC = () => {
       try {
         await playTtsAudio(cachedUrl, messageId);
       } catch (e: any) {
-        setTtsError("音声の再生に失敗しました。");
-        if (!isAuto) alert("音声の再生に失敗しました: " + (e.message || e));
+        const message = isPlaybackPermissionError(e)
+          ? "iPhone Safariが再生を止めました。音声ボタンをもう一度押してください。"
+          : "音声の再生に失敗しました。";
+        setTtsError(message);
+        if (!isAuto && !isPlaybackPermissionError(e)) alert("音声の再生に失敗しました: " + (e.message || e));
       }
       return;
     }
@@ -805,9 +823,18 @@ const AppContent: React.FC = () => {
       setTtsAudioUrls(prev => ({ ...prev, [messageId]: result.audioUrl }));
       ttsAudioUrlsRef.current = { ...ttsAudioUrlsRef.current, [messageId]: result.audioUrl };
 
+      if (isIosLikeBrowser()) {
+        setTtsError("音声を生成しました。音声ボタンをもう一度押すと再生します。");
+        return;
+      }
+
       try {
         await playTtsAudio(result.audioUrl, messageId);
       } catch (e: any) {
+        if (isPlaybackPermissionError(e)) {
+          setTtsError("音声を生成しました。音声ボタンをもう一度押すと再生します。");
+          return;
+        }
         if (!isAuto) throw e;
         setTtsError("音声を生成しました。自動再生できない場合は音声ボタンで再生してください。");
       }
@@ -1300,7 +1327,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.5.4 (2026/05/20) - Emoji-TTS Voice
+            Ver 1.5.5 (2026/05/20) - Emoji-TTS Voice
           </div>
         </div>
       </footer>

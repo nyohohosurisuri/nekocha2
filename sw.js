@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'ai-chat-v38-voice-button';
+const CACHE_NAME = 'ai-chat-v39-ios-tts-playback';
 const ASSETS = [
   './',
   './index.html',

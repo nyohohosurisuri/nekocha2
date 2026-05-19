@@ -324,7 +324,7 @@ ${text}
                         disabled={isTtsGenerating || (isTtsPlaying && !onStopSpeak)}
                         className={
                           'mb-0.5 w-8 h-8 rounded-full shadow-md flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform disabled:opacity-60 disabled:active:scale-100 ' +
-                          (isTtsPlaying ? 'bg-red-500 text-white' : 'bg-amber-500 text-white')
+                          (isTtsPlaying ? 'bg-red-500 text-white' : (hasTtsAudio ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'))
                         }
                       >
                         {isTtsPlaying ? (
