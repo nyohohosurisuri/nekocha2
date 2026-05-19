@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ChatConfig, PromptPreset } from '../types';
 import { dbService } from '../services/db';
 import { dropboxService } from '../services/dropboxService';
@@ -41,6 +41,27 @@ const MODEL_OPTIONS = [
     { value: 'gemini-3-flash-thinking-exp', label: 'Gemini 3 Flash Thinking (Exp)' },
 ];
 
+const isPrivateIpv4Host = (host: string): boolean => {
+    return /^10\./.test(host) ||
+        /^192\.168\./.test(host) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+};
+
+const normalizeTtsUrlCandidate = (url: string): string => {
+    try {
+        const parsed = new URL(url);
+        return `http://${parsed.hostname}:7862`;
+    } catch {
+        return "";
+    }
+};
+
+const getCurrentPageTtsUrlCandidate = (): string => {
+    if (typeof window === 'undefined') return "";
+    const host = window.location.hostname;
+    return isPrivateIpv4Host(host) ? `http://${host}:7862` : "";
+};
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, config, onUpdateConfig, onRestoreComplete, dropboxUser, setDropboxUser, googleDriveUser, setGoogleDriveUser }) => {
     const [activeTab, setActiveTab] = useState<TabType>('basic');
     const [presets, setPresets] = useState<PromptPreset[]>([]);
@@ -57,6 +78,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
     const avatarRef = useRef<HTMLInputElement>(null);
     const bgRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const ttsLanUrlCandidates = useMemo(() => {
+        const candidates = [
+            ...(ttsOptions?.lan_urls || []),
+            getCurrentPageTtsUrlCandidate(),
+            normalizeTtsUrlCandidate(config.ttsServerUrl || ""),
+        ].filter((url): url is string => {
+            if (!url) return false;
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === "http:" && isPrivateIpv4Host(parsed.hostname);
+            } catch {
+                return false;
+            }
+        });
+
+        return Array.from(new Set(candidates));
+    }, [ttsOptions, config.ttsServerUrl]);
 
     useEffect(() => {
         if (isOpen) {
@@ -741,11 +779,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                         先に C:\Users\mokom\Emoji-TTS\起動.bat でEmoji-TTSを起動してください。
                                     </p>
                                     {ttsStatus && <p className="text-xs text-gray-500 mt-2 ml-1">{ttsStatus}</p>}
-                                    {ttsOptions?.lan_urls?.length ? (
-                                        <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
-                                            <p className="text-[11px] font-bold text-gray-600 mb-2">同じWi-FiのiPhone用URL</p>
+                                    <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
+                                        <p className="text-[11px] font-bold text-gray-600 mb-2">同じWi-FiのiPhone用URL</p>
+                                        {ttsLanUrlCandidates.length ? (
                                             <div className="flex flex-col gap-2">
-                                                {ttsOptions.lan_urls.map(url => (
+                                                {ttsLanUrlCandidates.map(url => (
                                                     <button
                                                         key={url}
                                                         type="button"
@@ -756,15 +794,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                                     </button>
                                                 ))}
                                             </div>
-                                            <p className="text-[10px] text-gray-400 mt-2">
-                                                iPhone側ではこのURLをEmoji-TTSサーバーに入力します。Windowsのファイアウォール確認が出た場合は許可してください。
+                                        ) : (
+                                            <p className="text-xs text-gray-500">
+                                                iPhoneでは 127.0.0.1 は使えません。Windows Chrome側に表示される http://192.168.x.x:7862 を、この入力欄に入れて更新してください。
                                             </p>
-                                        </div>
-                                    ) : (
-                                        <p className="text-[10px] text-gray-400 mt-2 ml-1">
-                                            iPhoneから使う場合は、PCのIPv4アドレスを使って http://PCのIP:7862 を指定します。
+                                        )}
+                                        <p className="text-[10px] text-gray-400 mt-2">
+                                            候補が出ない場合は、PCで C:\Users\mokom\Emoji-TTS\起動.bat を起動し、Windowsファイアウォール確認が出たら許可してください。
                                         </p>
-                                    )}
+                                    </div>
                                 </div>
 
                                 <label className="flex items-center gap-3 cursor-pointer">
