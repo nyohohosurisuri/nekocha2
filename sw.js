@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-chat-v35-tts-controls';
+const CACHE_NAME = 'ai-chat-v36-iphone-tts-url';
 const ASSETS = [
   './',
   './index.html',
