@@ -102,6 +102,11 @@ const DEFAULT_CONFIG: ChatConfig = {
   ttsSeed: '',
 };
 
+const isCustomTtsServerUrl = (serverUrl?: string): boolean => {
+  const value = (serverUrl || '').trim().replace(/\/+$/, '');
+  return !!value && value !== DEFAULT_TTS_SERVER_URL;
+};
+
 // Global type definition for aistudio
 declare global {
   interface Window {
@@ -152,6 +157,23 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     ttsAudioUrlsRef.current = ttsAudioUrls;
   }, [ttsAudioUrls]);
+
+  useEffect(() => {
+    if (
+      isAppLoading ||
+      config.ttsEnabled ||
+      !isCustomTtsServerUrl(config.ttsServerUrl) ||
+      localStorage.getItem('nekocha_tts_disabled_manually') === '1'
+    ) {
+      return;
+    }
+
+    setConfig(prev => (
+      prev.ttsEnabled || !isCustomTtsServerUrl(prev.ttsServerUrl)
+        ? prev
+        : { ...prev, ttsEnabled: true }
+    ));
+  }, [isAppLoading, config.ttsEnabled, config.ttsServerUrl]);
 
   // Check for API Key on mount & Dropbox Auth
   useEffect(() => {
@@ -1278,7 +1300,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.5.3 (2026/05/20) - Emoji-TTS Voice
+            Ver 1.5.4 (2026/05/20) - Emoji-TTS Voice
           </div>
         </div>
       </footer>

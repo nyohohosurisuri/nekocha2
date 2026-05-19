@@ -213,6 +213,7 @@ ${text}
         const isTtsGenerating = ttsGeneratingMessageId === msg.id;
         const isTtsPlaying = ttsPlayingMessageId === msg.id;
         const hasTtsAudio = !!ttsAudioUrls[msg.id];
+        const showInlineTtsControl = !isUser && !!msg.text && !!onSpeak && !!config.ttsEnabled && !msg.isThinking && !isTranslating;
 
         // 表示するテキストを決定
         const displayText = currentMode === 'translated' && hasTranslation
@@ -307,6 +308,41 @@ ${text}
                       )}
                     </div>
                     {!isUser && <span className="text-[10px] text-white/80 mb-1 flex-shrink-0">{formatTime(msg.timestamp)}</span>}
+                    {showInlineTtsControl && (
+                      <button
+                        type="button"
+                        title={isTtsPlaying ? '音声を停止' : (hasTtsAudio ? '音声を再生' : '音声を生成')}
+                        aria-label={isTtsPlaying ? '音声を停止' : (hasTtsAudio ? '音声を再生' : '音声を生成')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isTtsPlaying && onStopSpeak) {
+                            onStopSpeak();
+                          } else {
+                            onSpeak(msg.id, msg.text);
+                          }
+                        }}
+                        disabled={isTtsGenerating || (isTtsPlaying && !onStopSpeak)}
+                        className={
+                          'mb-0.5 w-8 h-8 rounded-full shadow-md flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform disabled:opacity-60 disabled:active:scale-100 ' +
+                          (isTtsPlaying ? 'bg-red-500 text-white' : 'bg-amber-500 text-white')
+                        }
+                      >
+                        {isTtsPlaying ? (
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M6 6h12v12H6z" />
+                          </svg>
+                        ) : isTtsGenerating ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 00-9-9v3a6 6 0 016 6h3z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5L6 9H3v6h3l5 4V5zm4.5 3.5a5 5 0 010 7m2.5-9.5a8 8 0 010 11" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
                   </div>
 
                   {isActive && !msg.isThinking && !isTranslating && (

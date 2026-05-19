@@ -151,6 +151,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
 
             onUpdateConfig(prev => ({
                 ...prev,
+                ttsEnabled: localStorage.getItem('nekocha_tts_disabled_manually') === '1' ? prev.ttsEnabled : true,
                 ttsCheckpoint: prev.ttsCheckpoint || options.default_checkpoint,
                 ttsLoraAdapter: prev.ttsLoraAdapter || options.default_lora_adapter || '（なし）',
                 ttsMultilineMode: prev.ttsMultilineMode || options.default_multiline_mode || 'デフォルト',
@@ -775,7 +776,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                             type="checkbox"
                                             className="sr-only peer"
                                             checked={config.ttsEnabled || false}
-                                            onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsEnabled: e.target.checked }))}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    localStorage.removeItem('nekocha_tts_disabled_manually');
+                                                } else {
+                                                    localStorage.setItem('nekocha_tts_disabled_manually', '1');
+                                                }
+                                                onUpdateConfig(prev => ({ ...prev, ttsEnabled: e.target.checked }));
+                                            }}
                                         />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#06c755]"></div>
                                     </div>
@@ -833,7 +841,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                                     <button
                                                         key={url}
                                                         type="button"
-                                                        onClick={() => onUpdateConfig(prev => ({ ...prev, ttsServerUrl: url }))}
+                                                        onClick={() => {
+                                                            localStorage.removeItem('nekocha_tts_disabled_manually');
+                                                            onUpdateConfig(prev => ({ ...prev, ttsServerUrl: url, ttsEnabled: true }));
+                                                        }}
                                                         className="text-left text-xs font-mono bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 hover:border-[#06c755] hover:text-[#06c755] break-all"
                                                     >
                                                         {url}

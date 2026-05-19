@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'ai-chat-v37-iphone-local-url';
+const CACHE_NAME = 'ai-chat-v38-voice-button';
 const ASSETS = [
   './',
   './index.html',

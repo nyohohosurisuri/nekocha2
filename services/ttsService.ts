@@ -61,6 +61,22 @@ const connectionErrorMessage = (serverUrl: string): string => {
   return 'Emoji-TTSに接続できませんでした。Emoji-TTSを起動してから更新してください。';
 };
 
+const normalizeReturnedAudioUrl = (baseUrl: string, value: string): string => {
+  const trimmed = value.trim();
+  if (/^[a-zA-Z]:[\\/]/.test(trimmed)) {
+    return new URL(`gradio_api/file=${encodeURIComponent(trimmed)}`, `${baseUrl}/`).toString();
+  }
+
+  const parsed = new URL(trimmed, `${baseUrl}/`);
+  const base = new URL(baseUrl);
+  if (['127.0.0.1', 'localhost', '0.0.0.0'].includes(parsed.hostname)) {
+    parsed.protocol = base.protocol;
+    parsed.hostname = base.hostname;
+    parsed.port = base.port;
+  }
+  return parsed.toString();
+};
+
 const parseSseCompleteData = (body: string): any[] => {
   let currentEvent = '';
   let currentData: string[] = [];
@@ -135,12 +151,13 @@ const callGradioApi = async (serverUrl: string, apiName: string, data: any[]): P
 const resolveAudioUrl = (serverUrl: string, audioValue: any): string => {
   const baseUrl = normalizeServerUrl(serverUrl);
   if (typeof audioValue === 'string' && audioValue.trim()) {
-    return audioValue.startsWith('http') ? audioValue : new URL(audioValue, `${baseUrl}/`).toString();
+    return normalizeReturnedAudioUrl(baseUrl, audioValue);
   }
   if (audioValue?.url) {
-    return String(audioValue.url).startsWith('http')
-      ? String(audioValue.url)
-      : new URL(audioValue.url, `${baseUrl}/`).toString();
+    return normalizeReturnedAudioUrl(baseUrl, String(audioValue.url));
+  }
+  if (audioValue?.path) {
+    return normalizeReturnedAudioUrl(baseUrl, String(audioValue.path));
   }
   throw new Error('Emoji-TTSの音声URLが取得できませんでした。');
 };
