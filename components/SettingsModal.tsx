@@ -35,6 +35,7 @@ const TAB_LABELS: Record<TabType, string> = {
 
 const MODEL_OPTIONS = [
     { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
     { value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite (Preview)' },
     { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Preview)' },
     { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },

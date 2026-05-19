@@ -1327,7 +1327,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.5.5 (2026/05/20) - Emoji-TTS Voice
+            Ver 1.5.6 (2026/05/20) - Emoji-TTS Voice
           </div>
         </div>
       </footer>

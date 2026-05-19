@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-chat-v39-ios-tts-playback';
+const CACHE_NAME = 'ai-chat-v40-gemini-35-flash';
 const ASSETS = [
   './',
   './index.html',
