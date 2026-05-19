@@ -10,6 +10,7 @@ export interface TTSOptions {
   default_multiline_mode: string;
   default_num_steps: number;
   default_silence_sec: number;
+  lan_urls?: string[];
 }
 
 export interface TTSGenerateRequest {

@@ -8,14 +8,29 @@ interface MessageListProps {
   onRegenerate?: (id: string) => void;
   onEdit?: (id: string, text: string, attachments?: any[]) => void;
   onSpeak?: (id: string, text: string) => void;
+  onStopSpeak?: () => void;
+  onRegenerateSpeak?: (id: string, text: string) => void;
   ttsAudioUrls?: Record<string, string>;
   ttsGeneratingMessageId?: string | null;
+  ttsPlayingMessageId?: string | null;
 }
 
 // 翻訳キャッシュ
 const translationCache: Record<string, string> = {};
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, config, onCopy, onRegenerate, onEdit, onSpeak, ttsAudioUrls = {}, ttsGeneratingMessageId }) => {
+export const MessageList: React.FC<MessageListProps> = ({
+  messages,
+  config,
+  onCopy,
+  onRegenerate,
+  onEdit,
+  onSpeak,
+  onStopSpeak,
+  onRegenerateSpeak,
+  ttsAudioUrls = {},
+  ttsGeneratingMessageId,
+  ttsPlayingMessageId,
+}) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +210,9 @@ ${text}
         const currentMode = translationMode[msg.id] || 'original';
         const isTranslating = translatingId === msg.id;
         const hasTranslation = !!translationCache[msg.id];
+        const isTtsGenerating = ttsGeneratingMessageId === msg.id;
+        const isTtsPlaying = ttsPlayingMessageId === msg.id;
+        const hasTtsAudio = !!ttsAudioUrls[msg.id];
 
         // 表示するテキストを決定
         const displayText = currentMode === 'translated' && hasTranslation
@@ -324,16 +342,43 @@ ${text}
                       )}
 
                       {!isUser && msg.text && onSpeak && config.ttsEnabled && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onSpeak(msg.id, msg.text); setActiveMessageId(null); }}
-                          disabled={ttsGeneratingMessageId === msg.id}
-                          className="bg-amber-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-bold hover:bg-amber-600 flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-60 disabled:active:scale-100"
-                        >
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5L6 9H3v6h3l5 4V5zm4.5 3.5a5 5 0 010 7m2.5-9.5a8 8 0 010 11" />
-                          </svg>
-                          {ttsGeneratingMessageId === msg.id ? '生成中' : (ttsAudioUrls[msg.id] ? '再生' : '音声')}
-                        </button>
+                        <>
+                          {isTtsPlaying && onStopSpeak ? (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onStopSpeak(); setActiveMessageId(null); }}
+                              className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-bold hover:bg-red-600 flex items-center gap-1 active:scale-95 transition-transform"
+                            >
+                              <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                                <path d="M6 6h12v12H6z" />
+                              </svg>
+                              停止
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onSpeak(msg.id, msg.text); setActiveMessageId(null); }}
+                              disabled={isTtsGenerating}
+                              className="bg-amber-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-bold hover:bg-amber-600 flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-60 disabled:active:scale-100"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5L6 9H3v6h3l5 4V5zm4.5 3.5a5 5 0 010 7m2.5-9.5a8 8 0 010 11" />
+                              </svg>
+                              {isTtsGenerating ? '生成中' : (hasTtsAudio ? '音声再生' : '音声生成')}
+                            </button>
+                          )}
+
+                          {hasTtsAudio && onRegenerateSpeak && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onRegenerateSpeak(msg.id, msg.text); setActiveMessageId(null); }}
+                              disabled={isTtsGenerating}
+                              className="bg-orange-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-bold hover:bg-orange-600 flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-60 disabled:active:scale-100"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              音声再生成
+                            </button>
+                          )}
+                        </>
                       )}
 
                       {/* 翻訳/原文ボタン - AIメッセージのみ */}

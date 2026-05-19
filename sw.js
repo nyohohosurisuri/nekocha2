@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'ai-chat-v34-emoji-tts';
+const CACHE_NAME = 'ai-chat-v35-tts-controls';
 const ASSETS = [
   './',
   './index.html',

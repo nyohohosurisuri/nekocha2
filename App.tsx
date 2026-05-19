@@ -134,6 +134,7 @@ const AppContent: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [ttsAudioUrls, setTtsAudioUrls] = useState<Record<string, string>>({});
   const [ttsGeneratingMessageId, setTtsGeneratingMessageId] = useState<string | null>(null);
+  const [ttsPlayingMessageId, setTtsPlayingMessageId] = useState<string | null>(null);
   const [ttsError, setTtsError] = useState<string | null>(null);
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -535,6 +536,7 @@ const AppContent: React.FC = () => {
     const initMsgs: Message[] = isFirst ? [{ id: 'welcome', role: 'model', text: 'こんにちは！何かお手伝いしましょうか？', timestamp: new Date() }] : [];
 
     setMessages(initMsgs);
+    stopTtsAudio();
     setTtsAudioUrls({});
     setTtsError(null);
     setConfig(newConfig);
@@ -551,6 +553,7 @@ const AppContent: React.FC = () => {
       const data = await dbService.getSessionData(id);
       if (data) {
         ignoreNextSaveRef.current = true;
+        stopTtsAudio();
         setTtsAudioUrls({});
         setTtsError(null);
         setMessages(data.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
@@ -570,6 +573,7 @@ const AppContent: React.FC = () => {
 
     isLoadedRef.current = false;
     setMessages([]);
+    stopTtsAudio();
     setTtsAudioUrls({});
     setTtsError(null);
     setCurrentSessionId('');
@@ -701,24 +705,48 @@ const AppContent: React.FC = () => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const playTtsAudio = async (audioUrl: string) => {
+  const stopTtsAudio = () => {
+    if (!audioPlayerRef.current) {
+      setTtsPlayingMessageId(null);
+      return;
+    }
+    audioPlayerRef.current.pause();
+    audioPlayerRef.current.currentTime = 0;
+    audioPlayerRef.current.removeAttribute('src');
+    audioPlayerRef.current.load();
+    setTtsPlayingMessageId(null);
+  };
+
+  const playTtsAudio = async (audioUrl: string, messageId: string) => {
     if (!audioPlayerRef.current) {
       audioPlayerRef.current = new Audio();
     }
     audioPlayerRef.current.pause();
     audioPlayerRef.current.src = audioUrl;
     audioPlayerRef.current.currentTime = 0;
-    await audioPlayerRef.current.play();
+    audioPlayerRef.current.onended = () => {
+      setTtsPlayingMessageId(prev => prev === messageId ? null : prev);
+    };
+    audioPlayerRef.current.onerror = () => {
+      setTtsPlayingMessageId(prev => prev === messageId ? null : prev);
+    };
+    setTtsPlayingMessageId(messageId);
+    try {
+      await audioPlayerRef.current.play();
+    } catch (e) {
+      setTtsPlayingMessageId(prev => prev === messageId ? null : prev);
+      throw e;
+    }
   };
 
-  const handleSpeakMessage = async (messageId: string, text: string, isAuto = false) => {
+  const handleSpeakMessage = async (messageId: string, text: string, isAuto = false, forceRegenerate = false) => {
     const trimmedText = text.trim();
     if (!trimmedText) return;
 
-    const cachedUrl = ttsAudioUrlsRef.current[messageId];
+    const cachedUrl = forceRegenerate ? null : ttsAudioUrlsRef.current[messageId];
     if (cachedUrl) {
       try {
-        await playTtsAudio(cachedUrl);
+        await playTtsAudio(cachedUrl, messageId);
       } catch (e: any) {
         setTtsError("音声の再生に失敗しました。");
         if (!isAuto) alert("音声の再生に失敗しました: " + (e.message || e));
@@ -726,6 +754,17 @@ const AppContent: React.FC = () => {
       return;
     }
 
+    stopTtsAudio();
+    if (forceRegenerate) {
+      setTtsAudioUrls(prev => {
+        const next = { ...prev };
+        delete next[messageId];
+        return next;
+      });
+      const nextRef = { ...ttsAudioUrlsRef.current };
+      delete nextRef[messageId];
+      ttsAudioUrlsRef.current = nextRef;
+    }
     setTtsGeneratingMessageId(messageId);
     setTtsError(null);
     try {
@@ -745,7 +784,7 @@ const AppContent: React.FC = () => {
       ttsAudioUrlsRef.current = { ...ttsAudioUrlsRef.current, [messageId]: result.audioUrl };
 
       try {
-        await playTtsAudio(result.audioUrl);
+        await playTtsAudio(result.audioUrl, messageId);
       } catch (e: any) {
         if (!isAuto) throw e;
         setTtsError("音声を生成しました。自動再生できない場合は音声ボタンで再生してください。");
@@ -758,6 +797,10 @@ const AppContent: React.FC = () => {
     } finally {
       setTtsGeneratingMessageId(prev => prev === messageId ? null : prev);
     }
+  };
+
+  const handleRegenerateTtsMessage = (messageId: string, text: string) => {
+    void handleSpeakMessage(messageId, text, false, true);
   };
 
   const processMessageSending = async (text: string, currentHistory: Message[], attachmentsToSend: Attachment[] = []) => {
@@ -1113,8 +1156,11 @@ const AppContent: React.FC = () => {
           onRegenerate={handleRegenerate}
           onEdit={handleEdit}
           onSpeak={handleSpeakMessage}
+          onStopSpeak={stopTtsAudio}
+          onRegenerateSpeak={handleRegenerateTtsMessage}
           ttsAudioUrls={ttsAudioUrls}
           ttsGeneratingMessageId={ttsGeneratingMessageId}
+          ttsPlayingMessageId={ttsPlayingMessageId}
         />
       </main>
 
@@ -1122,6 +1168,7 @@ const AppContent: React.FC = () => {
         {saveStatus === 'saving' && <span className="text-[10px] text-gray-400 font-bold bg-white/80 px-2 py-0.5 rounded-full shadow-sm">保存中...</span>}
         {saveStatus === 'error' && <span className="text-[10px] text-red-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm">保存失敗</span>}
         {ttsGeneratingMessageId && <span className="text-[10px] text-gray-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm ml-2">音声生成中...</span>}
+        {ttsPlayingMessageId && <span className="text-[10px] text-green-600 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm ml-2">音声再生中</span>}
         {ttsError && <span className="text-[10px] text-orange-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm ml-2" title={ttsError}>音声エラー</span>}
       </div>
 
@@ -1231,7 +1278,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="text-center text-[9px] text-gray-300 mt-1">
-            Ver 1.5.0 (2026/05/20) - Emoji-TTS Voice
+            Ver 1.5.1 (2026/05/20) - Emoji-TTS Voice
           </div>
         </div>
       </footer>

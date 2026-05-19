@@ -741,6 +741,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                         先に C:\Users\mokom\Emoji-TTS\起動.bat でEmoji-TTSを起動してください。
                                     </p>
                                     {ttsStatus && <p className="text-xs text-gray-500 mt-2 ml-1">{ttsStatus}</p>}
+                                    {ttsOptions?.lan_urls?.length ? (
+                                        <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
+                                            <p className="text-[11px] font-bold text-gray-600 mb-2">同じWi-FiのiPhone用URL</p>
+                                            <div className="flex flex-col gap-2">
+                                                {ttsOptions.lan_urls.map(url => (
+                                                    <button
+                                                        key={url}
+                                                        type="button"
+                                                        onClick={() => onUpdateConfig(prev => ({ ...prev, ttsServerUrl: url }))}
+                                                        className="text-left text-xs font-mono bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 hover:border-[#06c755] hover:text-[#06c755] break-all"
+                                                    >
+                                                        {url}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mt-2">
+                                                iPhone側ではこのURLをEmoji-TTSサーバーに入力します。Windowsのファイアウォール確認が出た場合は許可してください。
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-[10px] text-gray-400 mt-2 ml-1">
+                                            iPhoneから使う場合は、PCのIPv4アドレスを使って http://PCのIP:7862 を指定します。
+                                        </p>
+                                    )}
                                 </div>
 
                                 <label className="flex items-center gap-3 cursor-pointer">
