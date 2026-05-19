@@ -7,12 +7,15 @@ interface MessageListProps {
   onCopy?: (text: string) => void;
   onRegenerate?: (id: string) => void;
   onEdit?: (id: string, text: string, attachments?: any[]) => void;
+  onSpeak?: (id: string, text: string) => void;
+  ttsAudioUrls?: Record<string, string>;
+  ttsGeneratingMessageId?: string | null;
 }
 
 // 翻訳キャッシュ
 const translationCache: Record<string, string> = {};
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, config, onCopy, onRegenerate, onEdit }) => {
+export const MessageList: React.FC<MessageListProps> = ({ messages, config, onCopy, onRegenerate, onEdit, onSpeak, ttsAudioUrls = {}, ttsGeneratingMessageId }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -317,6 +320,19 @@ ${text}
                         >
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                           再生成
+                        </button>
+                      )}
+
+                      {!isUser && msg.text && onSpeak && config.ttsEnabled && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onSpeak(msg.id, msg.text); setActiveMessageId(null); }}
+                          disabled={ttsGeneratingMessageId === msg.id}
+                          className="bg-amber-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-bold hover:bg-amber-600 flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-60 disabled:active:scale-100"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5L6 9H3v6h3l5 4V5zm4.5 3.5a5 5 0 010 7m2.5-9.5a8 8 0 010 11" />
+                          </svg>
+                          {ttsGeneratingMessageId === msg.id ? '生成中' : (ttsAudioUrls[msg.id] ? '再生' : '音声')}
                         </button>
                       )}
 

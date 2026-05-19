@@ -6,6 +6,7 @@ import { initializeChat, sendMessageStream } from './services/geminiService';
 import { dbService } from './services/db';
 import { dropboxService } from './services/dropboxService';
 import { googleDriveService } from './services/googleDriveService';
+import { DEFAULT_TTS_SERVER_URL, ttsService } from './services/ttsService';
 import { ChatConfig, Message, ChatSession, Attachment } from './types';
 
 interface ErrorBoundaryProps {
@@ -90,6 +91,15 @@ const DEFAULT_CONFIG: ChatConfig = {
   autoScrollToBottom: true,
   sendOnEnter: false,
   responseLength: 'long',
+  ttsEnabled: false,
+  ttsAutoPlay: true,
+  ttsServerUrl: DEFAULT_TTS_SERVER_URL,
+  ttsLoraAdapter: '（なし）',
+  ttsLoraScale: 1.0,
+  ttsMultilineMode: 'デフォルト',
+  ttsSilenceSec: 0.1,
+  ttsNumSteps: 40,
+  ttsSeed: '',
 };
 
 // Global type definition for aistudio
@@ -122,6 +132,9 @@ const AppContent: React.FC = () => {
   const [googleDriveUser, setGoogleDriveUser] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [ttsAudioUrls, setTtsAudioUrls] = useState<Record<string, string>>({});
+  const [ttsGeneratingMessageId, setTtsGeneratingMessageId] = useState<string | null>(null);
+  const [ttsError, setTtsError] = useState<string | null>(null);
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
@@ -132,6 +145,12 @@ const AppContent: React.FC = () => {
   const ignoreNextSaveRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const ttsAudioUrlsRef = useRef<Record<string, string>>({});
+
+  useEffect(() => {
+    ttsAudioUrlsRef.current = ttsAudioUrls;
+  }, [ttsAudioUrls]);
 
   // Check for API Key on mount & Dropbox Auth
   useEffect(() => {
@@ -516,6 +535,8 @@ const AppContent: React.FC = () => {
     const initMsgs: Message[] = isFirst ? [{ id: 'welcome', role: 'model', text: 'こんにちは！何かお手伝いしましょうか？', timestamp: new Date() }] : [];
 
     setMessages(initMsgs);
+    setTtsAudioUrls({});
+    setTtsError(null);
     setConfig(newConfig);
     setCurrentSessionId(id);
     setSessions(prev => [newSession, ...prev]);
@@ -530,6 +551,8 @@ const AppContent: React.FC = () => {
       const data = await dbService.getSessionData(id);
       if (data) {
         ignoreNextSaveRef.current = true;
+        setTtsAudioUrls({});
+        setTtsError(null);
         setMessages(data.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
         setConfig(prev => ({ ...DEFAULT_CONFIG, ...data.config }));
         setCurrentSessionId(id);
@@ -547,6 +570,8 @@ const AppContent: React.FC = () => {
 
     isLoadedRef.current = false;
     setMessages([]);
+    setTtsAudioUrls({});
+    setTtsError(null);
     setCurrentSessionId('');
 
     setIsAppLoading(true);
@@ -676,6 +701,65 @@ const AppContent: React.FC = () => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const playTtsAudio = async (audioUrl: string) => {
+    if (!audioPlayerRef.current) {
+      audioPlayerRef.current = new Audio();
+    }
+    audioPlayerRef.current.pause();
+    audioPlayerRef.current.src = audioUrl;
+    audioPlayerRef.current.currentTime = 0;
+    await audioPlayerRef.current.play();
+  };
+
+  const handleSpeakMessage = async (messageId: string, text: string, isAuto = false) => {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+
+    const cachedUrl = ttsAudioUrlsRef.current[messageId];
+    if (cachedUrl) {
+      try {
+        await playTtsAudio(cachedUrl);
+      } catch (e: any) {
+        setTtsError("音声の再生に失敗しました。");
+        if (!isAuto) alert("音声の再生に失敗しました: " + (e.message || e));
+      }
+      return;
+    }
+
+    setTtsGeneratingMessageId(messageId);
+    setTtsError(null);
+    try {
+      const result = await ttsService.generate({
+        serverUrl: config.ttsServerUrl || DEFAULT_TTS_SERVER_URL,
+        text: trimmedText,
+        checkpoint: config.ttsCheckpoint,
+        loraAdapter: config.ttsLoraAdapter || '（なし）',
+        loraScale: config.ttsLoraScale ?? 1.0,
+        multilineMode: config.ttsMultilineMode || 'デフォルト',
+        silenceSec: config.ttsSilenceSec ?? 0.1,
+        numSteps: config.ttsNumSteps ?? 40,
+        seed: config.ttsSeed || '',
+      });
+
+      setTtsAudioUrls(prev => ({ ...prev, [messageId]: result.audioUrl }));
+      ttsAudioUrlsRef.current = { ...ttsAudioUrlsRef.current, [messageId]: result.audioUrl };
+
+      try {
+        await playTtsAudio(result.audioUrl);
+      } catch (e: any) {
+        if (!isAuto) throw e;
+        setTtsError("音声を生成しました。自動再生できない場合は音声ボタンで再生してください。");
+      }
+    } catch (e: any) {
+      console.error("TTS generation failed:", e);
+      const message = e.message || "音声生成に失敗しました。";
+      setTtsError(message);
+      if (!isAuto) alert("音声生成に失敗しました:\n" + message);
+    } finally {
+      setTtsGeneratingMessageId(prev => prev === messageId ? null : prev);
+    }
+  };
+
   const processMessageSending = async (text: string, currentHistory: Message[], attachmentsToSend: Attachment[] = []) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -701,6 +785,7 @@ const AppContent: React.FC = () => {
 
     setIsLoading(true);
     let accumulatedText = '';
+    let shouldAutoSpeak = false;
     try {
       const stream = await sendMessageStream(text, attachmentsToSend, abortController.signal);
       for await (const chunk of stream) {
@@ -713,6 +798,7 @@ const AppContent: React.FC = () => {
         }
         if (chunk.uiChange && config.allowUIChange) setConfig(prev => ({ ...prev, ...chunk.uiChange }));
       }
+      shouldAutoSpeak = true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         setMessages(prev => prev.map(m => m.id === aiId ? { ...m, isThinking: false } : m));
@@ -731,6 +817,15 @@ const AppContent: React.FC = () => {
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
+
+      if (
+        shouldAutoSpeak &&
+        config.ttsEnabled &&
+        config.ttsAutoPlay !== false &&
+        accumulatedText.trim()
+      ) {
+        void handleSpeakMessage(aiId, accumulatedText, true);
+      }
 
       // Handle Auto Backup (Message Count Strategy)
       if (config.autoBackupEnabled && config.autoBackupInterval && config.autoBackupInterval > 0) {
@@ -1017,12 +1112,17 @@ const AppContent: React.FC = () => {
           onCopy={(t) => navigator.clipboard.writeText(t)}
           onRegenerate={handleRegenerate}
           onEdit={handleEdit}
+          onSpeak={handleSpeakMessage}
+          ttsAudioUrls={ttsAudioUrls}
+          ttsGeneratingMessageId={ttsGeneratingMessageId}
         />
       </main>
 
       <div className={`relative z-20 pointer-events-none flex justify-end px-4 pb-1 transition-opacity duration-500 ${isImmersive ? 'opacity-0' : 'opacity-100'}`}>
         {saveStatus === 'saving' && <span className="text-[10px] text-gray-400 font-bold bg-white/80 px-2 py-0.5 rounded-full shadow-sm">保存中...</span>}
         {saveStatus === 'error' && <span className="text-[10px] text-red-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm">保存失敗</span>}
+        {ttsGeneratingMessageId && <span className="text-[10px] text-gray-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm ml-2">音声生成中...</span>}
+        {ttsError && <span className="text-[10px] text-orange-500 font-bold bg-white/90 px-2 py-0.5 rounded-full shadow-sm ml-2" title={ttsError}>音声エラー</span>}
       </div>
 
       <footer className={`relative z-20 bg-white border-t px-3 py-1 pb-safe flex-shrink-0 transition-all duration-500 ${isImmersive ? 'opacity-0 translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}>

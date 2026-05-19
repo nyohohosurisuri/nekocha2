@@ -3,6 +3,7 @@ import { ChatConfig, PromptPreset } from '../types';
 import { dbService } from '../services/db';
 import { dropboxService } from '../services/dropboxService';
 import { googleDriveService } from '../services/googleDriveService';
+import { DEFAULT_TTS_SERVER_URL, TTSOptions, ttsService } from '../services/ttsService';
 import { ImageCropper } from './ImageCropper';
 import { ImageUrlInput } from './ImageUrlInput';
 
@@ -18,7 +19,7 @@ interface SettingsModalProps {
     setGoogleDriveUser: (user: string | null) => void;
 }
 
-type TabType = 'basic' | 'user' | 'character' | 'appearance' | 'tools' | 'advanced' | 'system' | 'backup';
+type TabType = 'basic' | 'user' | 'character' | 'appearance' | 'tools' | 'voice' | 'advanced' | 'system' | 'backup';
 
 const TAB_LABELS: Record<TabType, string> = {
     basic: '基本',
@@ -26,6 +27,7 @@ const TAB_LABELS: Record<TabType, string> = {
     character: 'キャラ',
     appearance: '表示',
     tools: 'ツール',
+    voice: '音声',
     advanced: '詳細',
     system: 'データ',
     backup: 'クラウド'
@@ -48,6 +50,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
     const [restoreStatus, setRestoreStatus] = useState<string>("");
     const [cropperImage, setCropperImage] = useState<string | null>(null);
     const [urlInputTarget, setUrlInputTarget] = useState<'aiAvatar' | 'backgroundImage' | null>(null);
+    const [ttsOptions, setTtsOptions] = useState<TTSOptions | null>(null);
+    const [ttsStatus, setTtsStatus] = useState<string>("");
+    const [isLoadingTtsOptions, setIsLoadingTtsOptions] = useState(false);
 
     const avatarRef = useRef<HTMLInputElement>(null);
     const bgRef = useRef<HTMLInputElement>(null);
@@ -72,6 +77,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
             })
             .catch(err => console.error("Failed to load presets", err));
     }, []);
+
+    const loadTtsOptions = async () => {
+        setIsLoadingTtsOptions(true);
+        setTtsStatus("Emoji-TTSに接続中...");
+        try {
+            const options = await ttsService.getOptions(config.ttsServerUrl || DEFAULT_TTS_SERVER_URL);
+            setTtsOptions(options);
+            setTtsStatus("接続しました");
+
+            onUpdateConfig(prev => ({
+                ...prev,
+                ttsCheckpoint: prev.ttsCheckpoint || options.default_checkpoint,
+                ttsLoraAdapter: prev.ttsLoraAdapter || options.default_lora_adapter || '（なし）',
+                ttsMultilineMode: prev.ttsMultilineMode || options.default_multiline_mode || 'デフォルト',
+                ttsNumSteps: prev.ttsNumSteps || options.default_num_steps || 40,
+                ttsSilenceSec: prev.ttsSilenceSec || options.default_silence_sec || 0.1,
+            }));
+        } catch (e: any) {
+            console.error("Failed to load Emoji-TTS options:", e);
+            setTtsStatus("接続できませんでした。Emoji-TTSを起動してから更新してください。");
+        } finally {
+            setIsLoadingTtsOptions(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'voice' && !ttsOptions && !isLoadingTtsOptions) {
+            loadTtsOptions();
+        }
+    }, [isOpen, activeTab]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: keyof ChatConfig) => {
         const file = e.target.files?.[0];
@@ -660,6 +695,160 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                                         </label>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'voice' && (
+                        <div className="space-y-4 max-w-lg mx-auto animate-fade-in">
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <label className="flex items-center justify-between cursor-pointer">
+                                    <div>
+                                        <div className="font-bold text-sm text-gray-800">Emoji-TTSで音声生成</div>
+                                        <div className="text-xs text-gray-500 mt-0.5">AIの返信を音声ファイルにして再生します</div>
+                                    </div>
+                                    <div className="relative">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={config.ttsEnabled || false}
+                                            onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsEnabled: e.target.checked }))}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#06c755]"></div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Emoji-TTSサーバー</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={config.ttsServerUrl || DEFAULT_TTS_SERVER_URL}
+                                            onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsServerUrl: e.target.value }))}
+                                            className="flex-1 p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none text-sm font-mono"
+                                        />
+                                        <button
+                                            onClick={loadTtsOptions}
+                                            disabled={isLoadingTtsOptions}
+                                            className="px-4 bg-[#2b3542] text-white rounded-xl font-bold text-xs disabled:opacity-50"
+                                        >
+                                            {isLoadingTtsOptions ? '確認中' : '更新'}
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                                        先に C:\Users\mokom\Emoji-TTS\起動.bat でEmoji-TTSを起動してください。
+                                    </p>
+                                    {ttsStatus && <p className="text-xs text-gray-500 mt-2 ml-1">{ttsStatus}</p>}
+                                </div>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-[#06c755] rounded focus:ring-[#06c755]"
+                                        checked={config.ttsAutoPlay !== false}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsAutoPlay: e.target.checked }))}
+                                    />
+                                    <span className="text-sm text-gray-700">返信完了後に自動再生する</span>
+                                </label>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">チェックポイント</label>
+                                    <select
+                                        value={config.ttsCheckpoint || ttsOptions?.default_checkpoint || ''}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsCheckpoint: e.target.value }))}
+                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none text-xs"
+                                    >
+                                        {(ttsOptions?.checkpoints || (config.ttsCheckpoint ? [config.ttsCheckpoint] : [])).map(path => (
+                                            <option key={path} value={path}>{path}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">LoRAアダプタ</label>
+                                    <select
+                                        value={config.ttsLoraAdapter || '（なし）'}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsLoraAdapter: e.target.value }))}
+                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none text-xs"
+                                    >
+                                        {(ttsOptions?.lora_adapters || ['（なし）', ...(config.ttsLoraAdapter && config.ttsLoraAdapter !== '（なし）' ? [config.ttsLoraAdapter] : [])]).map(path => (
+                                            <option key={path} value={path}>{path}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <div className="flex justify-between mb-1">
+                                        <label className="text-xs font-bold text-gray-500">LoRAスケール</label>
+                                        <span className="text-xs font-mono text-gray-400">{config.ttsLoraScale ?? 1}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="2"
+                                        step="0.05"
+                                        value={config.ttsLoraScale ?? 1}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsLoraScale: parseFloat(e.target.value) }))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#06c755]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">改行分割生成モード</label>
+                                    <select
+                                        value={config.ttsMultilineMode || 'デフォルト'}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsMultilineMode: e.target.value }))}
+                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none"
+                                    >
+                                        {(ttsOptions?.multiline_modes || ['デフォルト', '改行ごとに連続生成で終了', '改行ごとに連続生成後に連結']).map(mode => (
+                                            <option key={mode} value={mode}>{mode}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">無音区間（秒）</label>
+                                        <input
+                                            type="number"
+                                            min="0.1"
+                                            max="3"
+                                            step="0.1"
+                                            value={config.ttsSilenceSec ?? 0.1}
+                                            onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsSilenceSec: parseFloat(e.target.value) }))}
+                                            className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">ステップ数</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="120"
+                                            step="1"
+                                            value={config.ttsNumSteps ?? 40}
+                                            onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsNumSteps: parseInt(e.target.value || '40', 10) }))}
+                                            className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">シード（空白でランダム）</label>
+                                    <input
+                                        type="text"
+                                        value={config.ttsSeed || ''}
+                                        onChange={(e) => onUpdateConfig(prev => ({ ...prev, ttsSeed: e.target.value }))}
+                                        className="w-full p-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#06c755] focus:border-transparent outline-none font-mono text-sm"
+                                        placeholder="例: 1234"
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

@@ -55,6 +55,17 @@ export interface ChatConfig {
   // Behavior
   autoScrollToBottom?: boolean;
   sendOnEnter?: boolean;
+  // Emoji-TTS / Irodori-TTS integration
+  ttsEnabled?: boolean;
+  ttsAutoPlay?: boolean;
+  ttsServerUrl?: string;
+  ttsCheckpoint?: string;
+  ttsLoraAdapter?: string;
+  ttsLoraScale?: number;
+  ttsMultilineMode?: string;
+  ttsSilenceSec?: number;
+  ttsNumSteps?: number;
+  ttsSeed?: string;
 }
 
 export interface ChatSession {
